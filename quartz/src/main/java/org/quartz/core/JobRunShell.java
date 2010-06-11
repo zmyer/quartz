@@ -27,6 +27,7 @@ import org.quartz.JobExecutionException;
 import org.quartz.JobPersistenceException;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
+import org.quartz.SchedulerListener;
 import org.quartz.Trigger;
 import org.quartz.listeners.SchedulerListenerSupport;
 import org.quartz.spi.TriggerFiredBundle;
@@ -63,6 +64,7 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
+
     protected JobExecutionContext jec = null;
 
     protected QuartzScheduler qs = null;
@@ -73,7 +75,7 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
 
     protected JobRunShellFactory jobRunShellFactory = null;
 
-    protected boolean shutdownRequested = false;
+    protected volatile boolean shutdownRequested = false;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     
@@ -121,11 +123,12 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
+
     @Override
     public void schedulerShuttingdown() {
         requestShutdown();
     }
-
+    
     protected Logger getLog() {
         return log;
     }
@@ -221,10 +224,12 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
                             " threw an unhandled Exception: ", e);
                     SchedulerException se = new SchedulerException(
                             "Job threw an unhandled exception.", e);
+                    se.setErrorCode(SchedulerException.ERR_JOB_EXECUTION_THREW_EXCEPTION);
                     qs.notifySchedulerListenersError("Job ("
                             + jec.getJobDetail().getFullName()
                             + " threw an exception.", se);
                     jobExEx = new JobExecutionException(se, false);
+                    jobExEx.setErrorCode(JobExecutionException.ERR_JOB_EXECUTION_THREW_EXCEPTION);
                 } 
                 
                 jec.setJobRunTime(endTime - startTime);
@@ -243,6 +248,7 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
                     // If this happens, there's a bug in the trigger...
                     SchedulerException se = new SchedulerException(
                             "Trigger threw an unhandled exception.", e);
+                    se.setErrorCode(SchedulerException.ERR_TRIGGER_THREW_EXCEPTION);
                     qs.notifySchedulerListenersError(
                             "Please report this error to the Quartz developers.",
                             se);

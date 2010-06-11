@@ -17,7 +17,6 @@
 
 package org.quartz.spi;
 
-import java.util.List;
 import java.util.Set;
 
 import org.quartz.Calendar;
@@ -363,7 +362,7 @@ public interface JobStore {
      * zero-length array (not <code>null</code>).
      * </p>
      */
-    List<String> getJobNames(SchedulingContext ctxt, String groupName)
+    String[] getJobNames(SchedulingContext ctxt, String groupName)
         throws JobPersistenceException;
 
     /**
@@ -377,7 +376,7 @@ public interface JobStore {
      * zero-length array (not <code>null</code>).
      * </p>
      */
-    List<String> getTriggerNames(SchedulingContext ctxt, String groupName)
+    String[] getTriggerNames(SchedulingContext ctxt, String groupName)
         throws JobPersistenceException;
 
     /**
@@ -391,7 +390,7 @@ public interface JobStore {
      * array (not <code>null</code>).
      * </p>
      */
-    List<String> getJobGroupNames(SchedulingContext ctxt)
+    String[] getJobGroupNames(SchedulingContext ctxt)
         throws JobPersistenceException;
 
     /**
@@ -405,7 +404,7 @@ public interface JobStore {
      * array (not <code>null</code>).
      * </p>
      */
-    List<String> getTriggerGroupNames(SchedulingContext ctxt)
+    String[] getTriggerGroupNames(SchedulingContext ctxt)
         throws JobPersistenceException;
 
     /**
@@ -419,7 +418,7 @@ public interface JobStore {
      * a zero-length array (not <code>null</code>).
      * </p>
      */
-    List<String> getCalendarNames(SchedulingContext ctxt)
+    String[] getCalendarNames(SchedulingContext ctxt)
         throws JobPersistenceException;
 
     /**
@@ -431,7 +430,7 @@ public interface JobStore {
      * If there are no matches, a zero-length array should be returned.
      * </p>
      */
-    List<Trigger> getTriggersForJob(SchedulingContext ctxt, String jobName,
+    Trigger[] getTriggersForJob(SchedulingContext ctxt, String jobName,
             String groupName) throws JobPersistenceException;
 
     /**
@@ -542,7 +541,7 @@ public interface JobStore {
     void resumeTriggerGroup(SchedulingContext ctxt, String groupName)
         throws JobPersistenceException;
 
-    Set<String> getPausedTriggerGroups(SchedulingContext ctxt)
+    Set getPausedTriggerGroups(SchedulingContext ctxt)
         throws JobPersistenceException;
 
 
@@ -629,7 +628,7 @@ public interface JobStore {
      * milliseconds.
      * @see #releaseAcquiredTrigger(SchedulingContext, Trigger)
      */
-    List<Trigger> acquireNextTriggers(SchedulingContext ctxt, long noLaterThan, int maxCount, long timeWindow)
+    Trigger acquireNextTrigger(SchedulingContext ctxt, long noLaterThan)
         throws JobPersistenceException;
 
     /**
@@ -653,8 +652,8 @@ public interface JobStore {
      *         if the trigger was not successfully put into the 'executing'
      *         state.
      */
-    List<TriggerFiredResult> triggersFired(SchedulingContext ctxt,
-            List<Trigger> triggers) throws JobPersistenceException;
+    TriggerFiredBundle triggerFired(SchedulingContext ctxt,
+            Trigger trigger) throws JobPersistenceException;
 
     /**
      * <p>

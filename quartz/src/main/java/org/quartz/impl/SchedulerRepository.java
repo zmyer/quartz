@@ -42,7 +42,7 @@ public class SchedulerRepository {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    private HashMap<String, Scheduler> schedulers;
+    private HashMap schedulers;
 
     private static SchedulerRepository inst;
 
@@ -55,7 +55,7 @@ public class SchedulerRepository {
      */
 
     private SchedulerRepository() {
-        schedulers = new HashMap<String, Scheduler>();
+        schedulers = new HashMap();
     }
 
     /*
@@ -78,7 +78,8 @@ public class SchedulerRepository {
 
         if ((Scheduler) schedulers.get(sched.getSchedulerName()) != null) {
             throw new SchedulerException("Scheduler with name '"
-                    + sched.getSchedulerName() + "' already exists.");
+                    + sched.getSchedulerName() + "' already exists.",
+                    SchedulerException.ERR_BAD_CONFIGURATION);
         }
 
         schedulers.put(sched.getSchedulerName(), sched);
@@ -89,10 +90,10 @@ public class SchedulerRepository {
     }
 
     public synchronized Scheduler lookup(String schedName) {
-        return schedulers.get(schedName);
+        return (Scheduler) schedulers.get(schedName);
     }
 
-    public synchronized Collection<Scheduler> lookupAll() {
+    public synchronized Collection lookupAll() {
         return java.util.Collections
                 .unmodifiableCollection(schedulers.values());
     }

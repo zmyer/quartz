@@ -49,9 +49,9 @@ import org.quartz.TriggerListener;
 public class FilterAndBroadcastTriggerListener implements TriggerListener {
 
     private String name;
-    private List<TriggerListener> listeners;
-    private List<String> namePatterns = new LinkedList<String>();
-    private List<String> groupPatterns = new LinkedList<String>();
+    private List listeners;
+    private List namePatterns = new LinkedList();
+    private List groupPatterns = new LinkedList();
 
     /**
      * Construct an instance with the given name.
@@ -103,7 +103,7 @@ public class FilterAndBroadcastTriggerListener implements TriggerListener {
         return false;
     }
 
-    public List<TriggerListener> getListeners() {
+    public List getListeners() {
         return java.util.Collections.unmodifiableList(listeners);
     }
 
@@ -122,7 +122,7 @@ public class FilterAndBroadcastTriggerListener implements TriggerListener {
         namePatterns.add(regularExpression);
     }
 
-    public List<String> getTriggerNamePatterns() {
+    public List getTriggerNamePatterns() {
         return namePatterns;
     }
 
@@ -141,7 +141,7 @@ public class FilterAndBroadcastTriggerListener implements TriggerListener {
         groupPatterns.add(regularExpression);
     }
 
-    public List<String> getTriggerGroupPatterns() {
+    public List getTriggerGroupPatterns() {
         return namePatterns;
     }
 

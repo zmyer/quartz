@@ -382,7 +382,7 @@ public interface Scheduler {
      * 
      * @see JobExecutionContext
      */
-    List<JobExecutionContext> getCurrentlyExecutingJobs() throws SchedulerException;
+    List getCurrentlyExecutingJobs() throws SchedulerException;
 
     /**
      * <p>
@@ -704,7 +704,7 @@ public interface Scheduler {
      * groups.
      * </p>
      */
-    List<String> getJobGroupNames() throws SchedulerException;
+    String[] getJobGroupNames() throws SchedulerException;
 
     /**
      * <p>
@@ -712,7 +712,7 @@ public interface Scheduler {
      * in the given group.
      * </p>
      */
-    List<String> getJobNames(String groupName) throws SchedulerException;
+    String[] getJobNames(String groupName) throws SchedulerException;
 
     /**
      * <p>
@@ -720,7 +720,7 @@ public interface Scheduler {
      * identified <code>{@link org.quartz.JobDetail}</code>.
      * </p>
      */
-    List<Trigger> getTriggersOfJob(String jobName, String groupName)
+    Trigger[] getTriggersOfJob(String jobName, String groupName)
         throws SchedulerException;
 
     /**
@@ -728,7 +728,7 @@ public interface Scheduler {
      * Get the names of all known <code>{@link Trigger}</code> groups.
      * </p>
      */
-    List<String> getTriggerGroupNames() throws SchedulerException;
+    String[] getTriggerGroupNames() throws SchedulerException;
 
     /**
      * <p>
@@ -736,14 +736,14 @@ public interface Scheduler {
      * group.
      * </p>
      */
-    List<String> getTriggerNames(String groupName) throws SchedulerException;
+    String[] getTriggerNames(String groupName) throws SchedulerException;
 
     /**
      * <p>
      * Get the names of all <code>{@link Trigger}</code> groups that are paused.
      * </p>
      */
-    Set<String> getPausedTriggerGroups() throws SchedulerException;
+    Set getPausedTriggerGroups() throws SchedulerException;
     
     /**
      * <p>
@@ -819,7 +819,7 @@ public interface Scheduler {
      * Get the names of all registered <code>{@link Calendar}s</code>.
      * </p>
      */
-    List<String> getCalendarNames() throws SchedulerException;
+    String[] getCalendarNames() throws SchedulerException;
 
     /**
      * <p>
@@ -879,8 +879,34 @@ public interface Scheduler {
      * Listeners in the 'global' list receive notification of execution events
      * for ALL <code>{@link org.quartz.JobDetail}</code>s.
      * </p>
+     * 
+     * <p>
+     * Global listeners receive events for ALL jobs, and non-global listeners receive 
+     * events only for the specific jobs that explicitly name the listener in the 
+     * {@link JobDetail#getJobListenerNames()} property.
+     * </p>
+     * 
+     * @see #addJobListener(JobListener)
+     * @see #removeGlobalJobListener(String)
      */
     void addGlobalJobListener(JobListener jobListener)
+        throws SchedulerException;
+
+    /**
+     * <p>
+     * Add the given <code>{@link JobListener}</code> to the <code>Scheduler</code>'s
+     * list, of registered <code>JobListener</code>s.
+     * 
+     *      * <p>
+     * Global listeners receive events for ALL jobs, and non-global listeners receive 
+     * events only for the specific jobs that explicitly name the listener in the 
+     * {@link JobDetail#getJobListenerNames()} property.
+     * </p>
+     *
+     * @see #addGlobalJobListener(JobListener)
+     * @see #removeJobListener(String)
+     */
+    void addJobListener(JobListener jobListener)
         throws SchedulerException;
 
     /**
@@ -891,27 +917,65 @@ public interface Scheduler {
      * 
      * @return true if the identified listener was found in the list, and
      *         removed.
+     *         
+     * @see #addGlobalJobListener(JobListener)         
      */
     boolean removeGlobalJobListener(String name)
         throws SchedulerException;
 
     /**
      * <p>
+     * Remove the identified <code>{@link JobListener}</code> from the <code>Scheduler</code>'s
+     * list of registered listeners.
+     * </p>
+     * 
+     * @return true if the identified listener was found in the list, and
+     *         removed.
+     *         
+     * @see #addJobListener(JobListener)
+     */
+    boolean removeJobListener(String name) throws SchedulerException;
+
+    /**
+     * <p>
      * Get a List containing all of the <code>{@link JobListener}</code> s in
      * the <code>Scheduler</code>'s<i>global</i> list.
      * </p>
+     * 
+     * @see #addGlobalJobListener(JobListener)         
      */
-    List<JobListener> getGlobalJobListeners() throws SchedulerException;
+    List getGlobalJobListeners() throws SchedulerException;
 
+    /**
+     * <p>
+     * Get a Set containing the names of all the <i>non-global</i><code>{@link JobListener}</code>
+     * s registered with the <code>Scheduler</code>.
+     * </p>
+     * 
+     * @see #addJobListener(JobListener)
+     */
+    Set getJobListenerNames() throws SchedulerException;
 
     /**
      * <p>
      * Get the <i>global</i><code>{@link JobListener}</code> that has
      * the given name.
      * </p>
+     * 
+     * @see #addGlobalJobListener(JobListener)         
      */
     JobListener getGlobalJobListener(String name) throws SchedulerException;
     
+    /**
+     * <p>
+     * Get the <i>non-global</i><code>{@link JobListener}</code> that has
+     * the given name.
+     * </p>
+     * 
+     * @see #addJobListener(JobListener)
+     */
+    JobListener getJobListener(String name) throws SchedulerException;
+
     /**
      * <p>
      * Add the given <code>{@link TriggerListener}</code> to the <code>Scheduler</code>'s
@@ -922,8 +986,32 @@ public interface Scheduler {
      * Listeners in the 'global' list receive notification of execution events
      * for ALL <code>{@link Trigger}</code>s.
      * </p>
+     * 
+     * <p>
+     * Global listeners receive events for ALL triggers, and non-global listeners receive 
+     * events only for the specific triggers that explicitly name the listener in the 
+     * {@link Trigger#getTriggerListenerNames()} property.
+     * </p>
+     * 
+     * @see #addTriggerListener(TriggerListener)
      */
     void addGlobalTriggerListener(TriggerListener triggerListener)
+        throws SchedulerException;
+
+    /**
+     * <p>
+     * Add the given <code>{@link TriggerListener}</code> to the <code>Scheduler</code>'s
+     * list, of registered <code>TriggerListener</code>s.
+     * 
+     * <p>
+     * Global listeners receive events for ALL triggers, and non-global listeners receive 
+     * events only for the specific triggers that explicitly name the listener in the 
+     * {@link Trigger#getTriggerListenerNames()} property.
+     * </p>
+     * 
+     * @see #addGlobalTriggerListener(TriggerListener)
+     */
+    void addTriggerListener(TriggerListener triggerListener)
         throws SchedulerException;
 
     /**
@@ -934,27 +1022,67 @@ public interface Scheduler {
      * 
      * @return true if the identified listener was found in the list, and
      *         removed.
+     *         
+     * @see #addGlobalTriggerListener(TriggerListener)
      */
     boolean removeGlobalTriggerListener(String name)
         throws SchedulerException;
     
     /**
      * <p>
+     * Remove the identified <code>{@link TriggerListener}</code> from the
+     * <code>Scheduler</code>'s list of registered listeners.
+     * </p>
+     * 
+     * @return true if the identified listener was found in the list, and
+     *         removed.
+     *         
+     * @see #addTriggerListener(TriggerListener)
+     */
+    boolean removeTriggerListener(String name) throws SchedulerException;
+
+    /**
+     * <p>
      * Get a List containing all of the <code>{@link TriggerListener}</code>
      * s in the <code>Scheduler</code>'s<i>global</i> list.
      * </p>
+     *         
+     * @see #addGlobalTriggerListener(TriggerListener)
      */
-    List<TriggerListener> getGlobalTriggerListeners() throws SchedulerException;
+    List getGlobalTriggerListeners() throws SchedulerException;
+
+    /**
+     * <p>
+     * Get a Set containing the names of all the <i>non-global</i><code>{@link TriggerListener}</code>
+     * s registered with the <code>Scheduler</code>.
+     * </p>
+     *         
+     * @see #addTriggerListener(TriggerListener)
+     */
+    Set getTriggerListenerNames() throws SchedulerException;
 
     /**
      * <p>
      * Get the <i>global</i><code>{@link TriggerListener}</code> that
      * has the given name.
      * </p>
+     *         
+     * @see #addGlobalTriggerListener(TriggerListener)
      */
     TriggerListener getGlobalTriggerListener(String name)
         throws SchedulerException;
     
+    /**
+     * <p>
+     * Get the <i>non-global</i><code>{@link TriggerListener}</code> that
+     * has the given name.
+     * </p>
+     *         
+     * @see #addTriggerListener(TriggerListener)
+     */
+    TriggerListener getTriggerListener(String name)
+        throws SchedulerException;
+
     /**
      * <p>
      * Register the given <code>{@link SchedulerListener}</code> with the
@@ -982,7 +1110,7 @@ public interface Scheduler {
      * s registered with the <code>Scheduler</code>.
      * </p>
      */
-    List<SchedulerListener> getSchedulerListeners() throws SchedulerException;
+    List getSchedulerListeners() throws SchedulerException;
 
 
 }

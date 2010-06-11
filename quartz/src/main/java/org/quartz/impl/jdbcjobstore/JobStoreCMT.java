@@ -170,7 +170,8 @@ public class JobStoreCMT extends JobStoreSupport {
             throw new JobPersistenceException(
                 "Failed to obtain DB connection from data source '"
                         + getNonManagedTXDataSource() + "': "
-                        + e.toString(), e);
+                        + e.toString(), e,
+                JobPersistenceException.ERR_PERSISTENCE_CRITICAL_FAILURE);
         }
 
         if (conn == null) { 

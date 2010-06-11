@@ -46,6 +46,9 @@ public class CronTriggerTest extends SerializationTestSupport {
         t.setJobDataMap(jobDataMap);
         t.setVolatility(true);
 
+        t.addTriggerListener("L1");
+        t.addTriggerListener("L2");
+        
         return t;
     }
     
@@ -69,6 +72,7 @@ public class CronTriggerTest extends SerializationTestSupport {
         assertEquals(targetCronTrigger.getDescription(), deserializedCronTrigger.getDescription());
         assertEquals(targetCronTrigger.getJobDataMap(), deserializedCronTrigger.getJobDataMap());
         assertTrue(targetCronTrigger.isVolatile());
+        assertEquals(2, deserializedCronTrigger.getTriggerListenerNames().length);
     }
         
     
