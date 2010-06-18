@@ -71,7 +71,7 @@ public class QuartzSchedulerResources {
 
     private JobRunShellFactory jobRunShellFactory;
 
-    private ArrayList<SchedulerPlugin> schedulerPlugins = new ArrayList<SchedulerPlugin>(10);
+    private ArrayList schedulerPlugins = new ArrayList(10);
     
     private boolean makeSchedulerThreadDaemon = false;
 
@@ -84,14 +84,10 @@ public class QuartzSchedulerResources {
     private String jmxObjectName;
     
     private boolean runUpdateCheck = true;
-
-    private long batchTimeWindow;
-
-    private int maxBatchSize;
-
+    
     private boolean interruptJobsOnShutdown = false;
     private boolean interruptJobsOnShutdownWithWait = false;
-    
+   
     /*
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      * 
@@ -411,7 +407,7 @@ public class QuartzSchedulerResources {
      * <code>{@link QuartzScheduler}</code> to use.
      * </p>
      */
-    public List<SchedulerPlugin> getSchedulerPlugins() {
+    public List getSchedulerPlugins() {
         return schedulerPlugins;
     }
 
@@ -530,22 +526,6 @@ public class QuartzSchedulerResources {
         this.runUpdateCheck = runUpdateCheck;
     }
 
-    public long getBatchTimeWindow() {
-        return batchTimeWindow;
-    }
-
-    public void setBatchTimeWindow(long batchTimeWindow) {
-        this.batchTimeWindow = batchTimeWindow;
-    }
-
-    public int getMaxBatchSize() {
-      return maxBatchSize;
-    }
-
-    public void setMaxBatchSize(int maxBatchSize) {
-      this.maxBatchSize = maxBatchSize;
-    }
-    
     public boolean isInterruptJobsOnShutdown() {
         return interruptJobsOnShutdown;
     }
@@ -553,7 +533,7 @@ public class QuartzSchedulerResources {
     public void setInterruptJobsOnShutdown(boolean interruptJobsOnShutdown) {
         this.interruptJobsOnShutdown = interruptJobsOnShutdown;
     }
-    
+
     public boolean isInterruptJobsOnShutdownWithWait() {
         return interruptJobsOnShutdownWithWait;
     }

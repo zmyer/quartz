@@ -58,7 +58,7 @@ public class DBConnectionManager {
 
     private static DBConnectionManager instance = new DBConnectionManager();
 
-    private HashMap<String, ConnectionProvider> providers = new HashMap<String, ConnectionProvider>();
+    private HashMap providers = new HashMap();
 
     /*
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -99,7 +99,8 @@ public class DBConnectionManager {
      *              given name.
      */
     public Connection getConnection(String dsName) throws SQLException {
-        ConnectionProvider provider = providers.get(dsName);
+        ConnectionProvider provider = (ConnectionProvider) providers
+                .get(dsName);
         if (provider == null) {
             throw new SQLException("There is no DataSource named '"
                     + dsName + "'");

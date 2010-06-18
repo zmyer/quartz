@@ -51,6 +51,8 @@ public class LoadExample {
 
         log.info("------- Initialization Complete -----------");
 
+        String schedId = sched.getSchedulerInstanceId();
+
         // schedule 500 jobs to run
         for (int count=1; count <= _numberOfJobs; count++) {
             JobDetail job = new JobDetail("job" + count, "group1",

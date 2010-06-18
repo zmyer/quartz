@@ -16,11 +16,18 @@
 package org.quartz;
 
 import java.util.Calendar;
-import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 
 import junit.framework.TestCase;
 
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.quartz.Scheduler;
+import org.quartz.SimpleTrigger;
+import org.quartz.StatefulJob;
+import org.quartz.Trigger;
 import org.quartz.impl.StdSchedulerFactory;
 
 /**
@@ -46,11 +53,7 @@ public class PriorityTest extends TestCase {
     }
 
     public void testSameDefaultPriority() throws Exception {
-        Properties config = new Properties();
-        config.setProperty("org.quartz.threadPool.threadCount", "1");
-        config.setProperty("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
-
-        Scheduler sched = new StdSchedulerFactory(config).getScheduler();
+        Scheduler sched = StdSchedulerFactory.getDefaultScheduler();
 
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.SECOND, 1);
@@ -75,11 +78,7 @@ public class PriorityTest extends TestCase {
     }
 
     public void testDifferentPriority() throws Exception {
-        Properties config = new Properties();
-        config.setProperty("org.quartz.threadPool.threadCount", "1");
-        config.setProperty("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
-
-        Scheduler sched = new StdSchedulerFactory(config).getScheduler();
+        Scheduler sched = StdSchedulerFactory.getDefaultScheduler();
 
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.SECOND, 1);

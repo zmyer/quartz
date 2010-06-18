@@ -27,7 +27,6 @@ import javax.management.ObjectName;
 import org.quartz.Calendar;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
 import org.quartz.JobListener;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerContext;
@@ -331,7 +330,7 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public List<JobExecutionContext> getCurrentlyExecutingJobs() throws SchedulerException {
+    public List getCurrentlyExecutingJobs() throws SchedulerException {
         return (List)invoke("getCurrentlyExecutingJobs", new Object[] {}, new String[] {});
     }
 
@@ -636,8 +635,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getJobGroupNames() throws SchedulerException {
-        return (List<String>) invoke(
+    public String[] getJobGroupNames() throws SchedulerException {
+        return (String[])invoke(
                 "getJobGroupNames", 
                 new Object[] { schedulingContext}, 
                 new String[] { SchedulingContext.class.getName() });
@@ -650,8 +649,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getJobNames(String groupName) throws SchedulerException {
-        return (List<String>)invoke(
+    public String[] getJobNames(String groupName) throws SchedulerException {
+        return (String[])invoke(
                 "getJobNames", 
                 new Object[] { schedulingContext, groupName }, 
                 new String[] { SchedulingContext.class.getName(), String.class.getName() });
@@ -664,9 +663,9 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<Trigger> getTriggersOfJob(String jobName, String groupName)
+    public Trigger[] getTriggersOfJob(String jobName, String groupName)
         throws SchedulerException {
-        return (List<Trigger>)invoke(
+        return (Trigger[])invoke(
                 "getTriggersOfJob", 
                 new Object[] { schedulingContext, jobName, groupName }, 
                 new String[] { SchedulingContext.class.getName(), String.class.getName(), String.class.getName() });
@@ -679,8 +678,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getTriggerGroupNames() throws SchedulerException {
-        return (List<String>)invoke(
+    public String[] getTriggerGroupNames() throws SchedulerException {
+        return (String[])invoke(
                 "getTriggerGroupNames", 
                 new Object[] { schedulingContext}, 
                 new String[] { SchedulingContext.class.getName() });
@@ -693,8 +692,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getTriggerNames(String groupName) throws SchedulerException {
-        return (List<String>)invoke(
+    public String[] getTriggerNames(String groupName) throws SchedulerException {
+        return (String[])invoke(
                 "getTriggerNames", 
                 new Object[] { schedulingContext, groupName }, 
                 new String[] { SchedulingContext.class.getName(), String.class.getName() });
@@ -796,8 +795,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getCalendarNames() throws SchedulerException {
-        return (List<String>)invoke(
+    public String[] getCalendarNames() throws SchedulerException {
+        return (String[])invoke(
                 "getCalendarNames", 
                 new Object[] { schedulingContext }, 
                 new String[] { SchedulingContext.class.getName() });
@@ -817,7 +816,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public void addGlobalJobListener(JobListener jobListener)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -828,7 +828,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public void addJobListener(JobListener jobListener)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -839,7 +840,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public boolean removeGlobalJobListener(String name)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -849,7 +851,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      */
     public boolean removeJobListener(String name) throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -857,9 +860,10 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public List<JobListener> getGlobalJobListeners() throws SchedulerException {
+    public List getGlobalJobListeners() throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -867,9 +871,10 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public Set<String> getJobListenerNames() throws SchedulerException {
+    public Set getJobListenerNames() throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -879,7 +884,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      */
     public JobListener getGlobalJobListener(String name) throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
     
     /**
@@ -889,7 +895,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      */
     public JobListener getJobListener(String name) throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -900,7 +907,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public void addGlobalTriggerListener(TriggerListener triggerListener)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -911,7 +919,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public void addTriggerListener(TriggerListener triggerListener)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -922,7 +931,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public boolean removeGlobalTriggerListener(String name)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -932,7 +942,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      */
     public boolean removeTriggerListener(String name) throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -940,9 +951,10 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public List<TriggerListener> getGlobalTriggerListeners() throws SchedulerException {
+    public List getGlobalTriggerListeners() throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -950,9 +962,10 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public Set<String> getTriggerListenerNames() throws SchedulerException {
+    public Set getTriggerListenerNames() throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -963,7 +976,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public TriggerListener getGlobalTriggerListener(String name)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -974,7 +988,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public TriggerListener getTriggerListener(String name)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -985,7 +1000,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public void addSchedulerListener(SchedulerListener schedulerListener)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -996,7 +1012,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
     public boolean removeSchedulerListener(SchedulerListener schedulerListener)
         throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /**
@@ -1004,16 +1021,17 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public List<SchedulerListener> getSchedulerListeners() throws SchedulerException {
+    public List getSchedulerListeners() throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
 
     /** 
      * @see org.quartz.Scheduler#getPausedTriggerGroups()
      */
-    public Set<String> getPausedTriggerGroups() throws SchedulerException {
-        return (Set<String>)invoke(
+    public Set getPausedTriggerGroups() throws SchedulerException {
+        return (Set)invoke(
                 "getPausedTriggerGroups", 
                 new Object[] { schedulingContext }, 
                 new String[] { SchedulingContext.class.getName() });
@@ -1038,7 +1056,8 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
      */
     public void setJobFactory(JobFactory factory) throws SchedulerException {
         throw new SchedulerException(
-                "Operation not supported for remote schedulers.");
+                "Operation not supported for remote schedulers.",
+                SchedulerException.ERR_UNSUPPORTED_FUNCTION_IN_THIS_CONFIGURATION);
     }
     
     protected Boolean toBoolean(boolean bool) {

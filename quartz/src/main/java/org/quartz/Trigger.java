@@ -245,6 +245,8 @@ public abstract class Trigger implements java.io.Serializable, Cloneable,
 
     private int misfireInstruction = MISFIRE_INSTRUCTION_SMART_POLICY;
 
+    private LinkedList triggerListeners = new LinkedList();
+
     private int priority = DEFAULT_PRIORITY;
 
     private transient Key key = null;
@@ -629,6 +631,51 @@ public abstract class Trigger implements java.io.Serializable, Cloneable,
 
     /**
      * <p>
+     * Add the specified name of a <code>{@link TriggerListener}</code> to
+     * the end of the <code>Trigger</code>'s list of listeners.
+     * </p>
+     */
+    public void addTriggerListener(String name) {
+        if (triggerListeners.contains(name)) {
+            throw new IllegalArgumentException(
+                "Trigger listener '" + name + "' is already registered for trigger: " + getFullName());
+        }
+
+        triggerListeners.add(name);
+    }
+
+    /**
+     * <p>
+     * Remove the specified name of a <code>{@link TriggerListener}</code>
+     * from the <code>Trigger</code>'s list of listeners.
+     * </p>
+     * 
+     * @return true if the given name was found in the list, and removed
+     */
+    public boolean removeTriggerListener(String name) {
+        return triggerListeners.remove(name);
+    }
+
+    /**
+     * <p>
+     * Returns an array of <code>String</code>  containing the names of all
+     * <code>{@link TriggerListener}</code>s assigned to the <code>Trigger</code>,
+     * in the order in which they should be notified.
+     * </p>
+     */
+    public String[] getTriggerListenerNames() {
+        return (String[])triggerListeners.toArray(new String[triggerListeners.size()]);
+    }
+
+    /**
+     * Remove all <code>{@link TriggerListener}</code>s from the <code>Trigger</code>.
+     */
+    public void clearAllTriggerListeners() {
+        triggerListeners.clear();
+    }
+
+    /**
+     * <p>
      * This method should not be used by the Quartz client.
      * </p>
      * 
@@ -895,21 +942,25 @@ public abstract class Trigger implements java.io.Serializable, Cloneable,
      */
     public void validate() throws SchedulerException {
         if (name == null) {
-            throw new SchedulerException("Trigger's name cannot be null");
+            throw new SchedulerException("Trigger's name cannot be null",
+                        SchedulerException.ERR_CLIENT_ERROR);
         }
 
         if (group == null) {
-            throw new SchedulerException("Trigger's group cannot be null");
+            throw new SchedulerException("Trigger's group cannot be null",
+                        SchedulerException.ERR_CLIENT_ERROR);
         }
 
         if (jobName == null) {
             throw new SchedulerException(
-                        "Trigger's related Job's name cannot be null");
+                        "Trigger's related Job's name cannot be null",
+                        SchedulerException.ERR_CLIENT_ERROR);
         }
 
         if (jobGroup == null) {
             throw new SchedulerException(
-                        "Trigger's related Job's group cannot be null");
+                        "Trigger's related Job's group cannot be null",
+                        SchedulerException.ERR_CLIENT_ERROR);
         }
     }
 
@@ -1019,6 +1070,8 @@ public abstract class Trigger implements java.io.Serializable, Cloneable,
         Trigger copy;
         try {
             copy = (Trigger) super.clone();
+
+            copy.triggerListeners = (LinkedList)triggerListeners.clone();
 
             // Shallow copy the jobDataMap.  Note that this means that if a user
             // modifies a value object in this map from the cloned Trigger

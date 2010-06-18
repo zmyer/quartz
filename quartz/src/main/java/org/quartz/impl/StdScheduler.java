@@ -24,7 +24,6 @@ import java.util.Set;
 import org.quartz.Calendar;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
 import org.quartz.JobListener;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerContext;
@@ -222,7 +221,7 @@ public class StdScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public List<JobExecutionContext> getCurrentlyExecutingJobs() {
+    public List getCurrentlyExecutingJobs() {
         return sched.getCurrentlyExecutingJobs();
     }
 
@@ -479,7 +478,7 @@ public class StdScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getJobGroupNames() throws SchedulerException {
+    public String[] getJobGroupNames() throws SchedulerException {
         return sched.getJobGroupNames(schedCtxt);
     }
 
@@ -490,7 +489,7 @@ public class StdScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<Trigger> getTriggersOfJob(String jobName, String groupName)
+    public Trigger[] getTriggersOfJob(String jobName, String groupName)
         throws SchedulerException {
         return sched.getTriggersOfJob(schedCtxt, jobName, groupName);
     }
@@ -502,7 +501,7 @@ public class StdScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getJobNames(String groupName) throws SchedulerException {
+    public String[] getJobNames(String groupName) throws SchedulerException {
         return sched.getJobNames(schedCtxt, groupName);
     }
 
@@ -513,7 +512,7 @@ public class StdScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getTriggerGroupNames() throws SchedulerException {
+    public String[] getTriggerGroupNames() throws SchedulerException {
         return sched.getTriggerGroupNames(schedCtxt);
     }
 
@@ -524,7 +523,7 @@ public class StdScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getTriggerNames(String groupName) throws SchedulerException {
+    public String[] getTriggerNames(String groupName) throws SchedulerException {
         return sched.getTriggerNames(schedCtxt, groupName);
     }
 
@@ -605,7 +604,7 @@ public class StdScheduler implements Scheduler {
      * instance.
      * </p>
      */
-    public List<String> getCalendarNames() throws SchedulerException {
+    public String[] getCalendarNames() throws SchedulerException {
         return sched.getCalendarNames(schedCtxt);
     }
 
@@ -629,6 +628,15 @@ public class StdScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
+    public void addJobListener(JobListener jobListener) {
+        sched.addJobListener(jobListener);
+    }
+
+    /**
+     * <p>
+     * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
+     * </p>
+     */
     public boolean removeGlobalJobListener(String name) {
         return sched.removeGlobalJobListener(name);
     }
@@ -638,8 +646,26 @@ public class StdScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public List<JobListener> getGlobalJobListeners() {
+    public boolean removeJobListener(String name) {
+        return sched.removeJobListener(name);
+    }
+
+    /**
+     * <p>
+     * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
+     * </p>
+     */
+    public List getGlobalJobListeners() {
         return sched.getGlobalJobListeners();
+    }
+
+    /**
+     * <p>
+     * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
+     * </p>
+     */
+    public Set getJobListenerNames() {
+        return sched.getJobListenerNames();
     }
 
     /**
@@ -656,8 +682,26 @@ public class StdScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
+    public JobListener getJobListener(String name) {
+        return sched.getJobListener(name);
+    }
+
+    /**
+     * <p>
+     * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
+     * </p>
+     */
     public void addGlobalTriggerListener(TriggerListener triggerListener) {
         sched.addGlobalTriggerListener(triggerListener);
+    }
+
+    /**
+     * <p>
+     * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
+     * </p>
+     */
+    public void addTriggerListener(TriggerListener triggerListener) {
+        sched.addTriggerListener(triggerListener);
     }
 
     /**
@@ -674,8 +718,26 @@ public class StdScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public List<TriggerListener> getGlobalTriggerListeners() {
+    public boolean removeTriggerListener(String name) {
+        return sched.removeTriggerListener(name);
+    }
+
+    /**
+     * <p>
+     * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
+     * </p>
+     */
+    public List getGlobalTriggerListeners() {
         return sched.getGlobalTriggerListeners();
+    }
+
+    /**
+     * <p>
+     * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
+     * </p>
+     */
+    public Set getTriggerListenerNames() {
+        return sched.getTriggerListenerNames();
     }
 
     /**
@@ -685,6 +747,15 @@ public class StdScheduler implements Scheduler {
      */
     public TriggerListener getGlobalTriggerListener(String name) {
         return sched.getGlobalTriggerListener(name);
+    }
+
+    /**
+     * <p>
+     * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
+     * </p>
+     */
+    public TriggerListener getTriggerListener(String name) {
+        return sched.getTriggerListener(name);
     }
 
     /**
@@ -710,7 +781,7 @@ public class StdScheduler implements Scheduler {
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>
      */
-    public List<SchedulerListener> getSchedulerListeners() {
+    public List getSchedulerListeners() {
         return sched.getSchedulerListeners();
     }
 
