@@ -64,6 +64,6 @@ public interface SchedulerFactory {
      * within this jvm.).
      * </p>
      */
-    Collection<Scheduler> getAllSchedulers() throws SchedulerException;
+    Collection getAllSchedulers() throws SchedulerException;
 
 }

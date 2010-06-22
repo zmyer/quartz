@@ -21,8 +21,7 @@ package org.quartz;
 /**
  * <p>
  * The interface to be implemented by classes that want to be informed when a
- * <code>{@link Trigger}</code> fires. In general, applications that use a
- * <code>Scheduler</code> will not have use for this mechanism.
+ * <code>{@link Trigger}</code> fires. 
  * </p>
  * 
  * @see Scheduler
@@ -73,8 +72,7 @@ public interface TriggerListener {
      * <p>
      * Called by the <code>{@link Scheduler}</code> when a <code>{@link Trigger}</code>
      * has fired, and it's associated <code>{@link org.quartz.JobDetail}</code>
-     * is about to be executed.  If the implementation vetos the execution (via
-     * returning <code>true</code>, the job's execute method will not be called.
+     * is about to be executed.
      * </p>
      * 
      * <p>

@@ -40,7 +40,7 @@ public abstract class DBSemaphore implements Semaphore, Constants,
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    ThreadLocal<HashSet<String>> lockOwners = new ThreadLocal<HashSet<String>>();
+    ThreadLocal lockOwners = new ThreadLocal();
 
     private String sql;
 
@@ -74,10 +74,10 @@ public abstract class DBSemaphore implements Semaphore, Constants,
         return log;
     }
 
-    private HashSet<String> getThreadLocks() {
-        HashSet<String> threadLocks = lockOwners.get();
+    private HashSet getThreadLocks() {
+        HashSet threadLocks = (HashSet) lockOwners.get();
         if (threadLocks == null) {
-            threadLocks = new HashSet<String>();
+            threadLocks = new HashSet();
             lockOwners.set(threadLocks);
         }
         return threadLocks;

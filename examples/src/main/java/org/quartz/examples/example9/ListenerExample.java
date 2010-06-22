@@ -60,8 +60,11 @@ public class ListenerExample {
                 0);
         // Set up the listener
         JobListener listener = new Job1Listener();
-        sched.addGlobalJobListener(listener); // TODO: Add pattern to only match job 1
+        sched.addJobListener(listener);
 
+        // make sure the listener is associated with the job
+        job.addJobListener(listener.getName());        
+        
         // schedule the job to run
         sched.scheduleJob(job, trigger);
         

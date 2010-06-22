@@ -29,7 +29,7 @@
             <durability>true</durability>
             <recover>false</recover>
         </job>
-	    
+
 	    <trigger>
 	        <simple>
 	            <name>TestSimpleTrigger1AtFiveSecondInterval</name>
@@ -81,16 +81,16 @@
 	            <job-group>GroupOfTestJob2</job-group>
                 <job-data-map>
                     <entry>
-                        <key>someKey</key>
-                        <value>overriddenValue</value>
+	                    <key>someKey</key>
+	                    <value>overriddenValue</value>
                     </entry>
-                    <entry>
-                        <key>someOtherKey</key>
-                        <value>someOtherOverriddenValue</value>
-                    </entry>
+	                <entry>
+	                    <key>someOtherKey</key>
+	                    <value>someOtherOverriddenValue</value>
+	                </entry>
                 </job-data-map>
                 <cron-expression>0 * * ? * *</cron-expression>
-	        </cron>
+            </cron>
 	    </trigger>
 	
 	    <trigger>
@@ -106,6 +106,7 @@
 	            <cron-expression>45 * * ? * *</cron-expression>
 	            <time-zone>America/Los_Angeles</time-zone>
 	        </cron>
-	    </trigger>
+        </trigger>
+	    
     </schedule>    
 </job-scheduling-data>

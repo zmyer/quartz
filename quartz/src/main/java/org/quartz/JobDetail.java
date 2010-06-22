@@ -78,6 +78,8 @@ public class JobDetail implements Cloneable, java.io.Serializable {
 
     private boolean shouldRecover = false;
 
+    private Set jobListeners = new LinkedHashSet();
+
     private transient Key key = null;
 
     /*
@@ -325,15 +327,18 @@ public class JobDetail implements Cloneable, java.io.Serializable {
      */
     public void validate() throws SchedulerException {
         if (name == null) {
-            throw new SchedulerException("Job's name cannot be null");
+            throw new SchedulerException("Job's name cannot be null",
+                    SchedulerException.ERR_CLIENT_ERROR);
         }
 
         if (group == null) {
-            throw new SchedulerException("Job's group cannot be null");
+            throw new SchedulerException("Job's group cannot be null",
+                    SchedulerException.ERR_CLIENT_ERROR);
         }
 
         if (jobClass == null) {
-            throw new SchedulerException("Job's class cannot be null");
+            throw new SchedulerException("Job's class cannot be null",
+                    SchedulerException.ERR_CLIENT_ERROR);
         }
     }
 
@@ -450,6 +455,46 @@ public class JobDetail implements Cloneable, java.io.Serializable {
 
     /**
      * <p>
+     * Add the specified name of a <code>{@link JobListener}</code> to the
+     * end of the <code>Job</code>'s list of listeners.
+     * </p>
+     * 
+     * @see #getJobListenerNames()
+     */
+    public void addJobListener(String name) {
+        if (jobListeners.add(name) == false) {
+            throw new IllegalArgumentException(
+                "Job listener '" + name + "' is already registered for job detail: " + getFullName());
+        }
+    }
+
+    /**
+     * <p>
+     * Remove the specified name of a <code>{@link JobListener}</code> from
+     * the <code>Job</code>'s list of listeners.
+     * </p>
+     * 
+     * @return true if the given name was found in the list, and removed
+     */
+    public boolean removeJobListener(String name) {
+        return jobListeners.remove(name);
+    }
+
+    /**
+     * <p>
+     * Returns an array of <code>String</code> s containing the names of all
+     * <code>{@link JobListener}</code>s assigned to the <code>Job</code>,
+     * in the order in which they should be notified.
+     * </p>
+     * 
+     * @see #addJobListener(String)
+     */
+    public String[] getJobListenerNames() {
+        return (String[])jobListeners.toArray(new String[jobListeners.size()]);
+    }
+
+    /**
+     * <p>
      * Return a simple string representation of this object.
      * </p>
      */
@@ -493,6 +538,8 @@ public class JobDetail implements Cloneable, java.io.Serializable {
         JobDetail copy;
         try {
             copy = (JobDetail) super.clone();
+            copy.jobListeners = new LinkedHashSet();
+            copy.jobListeners.addAll(jobListeners);
             if (jobDataMap != null) {
                 copy.jobDataMap = (JobDataMap) jobDataMap.clone();
             }

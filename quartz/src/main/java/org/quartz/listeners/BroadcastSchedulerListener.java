@@ -24,7 +24,7 @@ import org.quartz.Trigger;
  */
 public class BroadcastSchedulerListener implements SchedulerListener {
 
-    private List<SchedulerListener> listeners;
+    private List listeners;
 
     public BroadcastSchedulerListener() {
         listeners = new LinkedList();
@@ -49,7 +49,7 @@ public class BroadcastSchedulerListener implements SchedulerListener {
         return listeners.remove(listener);
     }
 
-    public List<SchedulerListener> getListeners() {
+    public List getListeners() {
         return java.util.Collections.unmodifiableList(listeners);
     }
 
@@ -156,7 +156,7 @@ public class BroadcastSchedulerListener implements SchedulerListener {
             l.schedulerShutdown();
         }
     }
-    
+
     public void schedulerShuttingdown() {
         Iterator itr = listeners.iterator();
         while(itr.hasNext()) {
@@ -164,5 +164,4 @@ public class BroadcastSchedulerListener implements SchedulerListener {
             l.schedulerShuttingdown();
         }
     }
-    
 }

@@ -875,7 +875,8 @@ public class DateIntervalTrigger extends Trigger {
         super.validate();
         
         if (repeatInterval < 1) {
-            throw new SchedulerException("Repeat Interval cannot be zero.");
+            throw new SchedulerException("Repeat Interval cannot be zero.",
+                    SchedulerException.ERR_CLIENT_ERROR);
         }
     }
 

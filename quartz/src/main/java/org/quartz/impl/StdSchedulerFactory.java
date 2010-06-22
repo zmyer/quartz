@@ -30,6 +30,7 @@ import java.lang.reflect.Method;
 import java.security.AccessControlException;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -139,10 +140,6 @@ public class StdSchedulerFactory implements SchedulerFactory {
 
     public static final String PROP_SCHED_SKIP_UPDATE_CHECK = "org.quartz.scheduler.skipUpdateCheck";
 
-    public static final String PROP_SCHED_BATCH_TIME_WINDOW = "org.quartz.scheduler.batchTimeWindow";
-
-    public static final String PROP_SCHED_MAX_BATCH_SIZE = "org.quartz.scheduler.maxBatchSize";
-
     public static final String PROP_SCHED_JMX_EXPORT = "org.quartz.scheduler.jmx.export";
 
     public static final String PROP_SCHED_JMX_OBJECT_NAME = "org.quartz.scheduler.jmx.objectName";
@@ -182,7 +179,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
     public static final String PROP_SCHED_JOB_FACTORY_CLASS = "org.quartz.scheduler.jobFactory.class";
 
     public static final String PROP_SCHED_JOB_FACTORY_PREFIX = "org.quartz.scheduler.jobFactory";
-
+    
     public static final String PROP_SCHED_INTERRUPT_JOBS_ON_SHUTDOWN = "org.quartz.scheduler.interruptJobsOnShutdown";
 
     public static final String PROP_SCHED_INTERRUPT_JOBS_ON_SHUTDOWN_WITH_WAIT = "org.quartz.scheduler.interruptJobsOnShutdownWithWait";
@@ -628,12 +625,10 @@ public class StdSchedulerFactory implements SchedulerFactory {
             cfg.getBooleanProperty(PROP_SCHED_SCHEDULER_THREADS_INHERIT_CONTEXT_CLASS_LOADER_OF_INITIALIZING_THREAD);
 
         boolean skipUpdateCheck = cfg.getBooleanProperty(PROP_SCHED_SKIP_UPDATE_CHECK, false);
-        long batchTimeWindow = cfg.getLongProperty(PROP_SCHED_BATCH_TIME_WINDOW, 0L);
-        int maxBatchSize = cfg.getIntProperty(PROP_SCHED_MAX_BATCH_SIZE, 10);
-
+        
         boolean interruptJobsOnShutdown = cfg.getBooleanProperty(PROP_SCHED_INTERRUPT_JOBS_ON_SHUTDOWN, false);
         boolean interruptJobsOnShutdownWithWait = cfg.getBooleanProperty(PROP_SCHED_INTERRUPT_JOBS_ON_SHUTDOWN_WITH_WAIT, false);
-
+        
         boolean jmxExport = cfg.getBooleanProperty(PROP_SCHED_JMX_EXPORT);
         String jmxObjectName = cfg.getStringProperty(PROP_SCHED_JMX_OBJECT_NAME);
         
@@ -727,6 +722,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
             } catch (Exception e) {
                 initException = new SchedulerException("RemoteMBeanScheduler class '"
                         + jmxProxyClass + "' props could not be configured.", e);
+                initException.setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
 
@@ -755,6 +751,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
             } catch (Exception e) {
                 initException = new SchedulerException("JobFactory class '"
                         + jobFactoryClass + "' props could not be configured.", e);
+                initException
+                        .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
         }
@@ -776,6 +774,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
             } catch (Exception e) {
                 initException = new SchedulerException("InstanceIdGenerator class '"
                         + instanceIdGeneratorClass + "' props could not be configured.", e);
+                initException
+                        .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
         }
@@ -787,7 +787,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
 
         if (tpClass == null) {
             initException = new SchedulerException(
-                    "ThreadPool class not specified. ");
+                    "ThreadPool class not specified. ",
+                    SchedulerException.ERR_BAD_CONFIGURATION);
             throw initException;
         }
 
@@ -796,6 +797,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
         } catch (Exception e) {
             initException = new SchedulerException("ThreadPool class '"
                     + tpClass + "' could not be instantiated.", e);
+            initException
+                    .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
             throw initException;
         }
         tProps = cfg.getPropertyGroup(PROP_THREAD_POOL_PREFIX, true);
@@ -804,6 +807,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
         } catch (Exception e) {
             initException = new SchedulerException("ThreadPool class '"
                     + tpClass + "' props could not be configured.", e);
+            initException
+                    .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
             throw initException;
         }
 
@@ -815,7 +820,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
 
         if (jsClass == null) {
             initException = new SchedulerException(
-                    "JobStore class not specified. ");
+                    "JobStore class not specified. ",
+                    SchedulerException.ERR_BAD_CONFIGURATION);
             throw initException;
         }
 
@@ -824,6 +830,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
         } catch (Exception e) {
             initException = new SchedulerException("JobStore class '" + jsClass
                     + "' could not be instantiated.", e);
+            initException
+                    .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
             throw initException;
         }
 
@@ -835,6 +843,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
         } catch (Exception e) {
             initException = new SchedulerException("JobStore class '" + jsClass
                     + "' props could not be configured.", e);
+            initException
+                    .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
             throw initException;
         }
 
@@ -858,6 +868,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
                     } catch (Exception e) {
                         initException = new SchedulerException("JobStore LockHandler class '" + lockHandlerClass
                                 + "' props could not be configured.", e);
+                        initException.setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                         throw initException;
                     }
 
@@ -866,6 +877,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 } catch (Exception e) {
                     initException = new SchedulerException("JobStore LockHandler class '" + lockHandlerClass
                             + "' could not be instantiated.", e);
+                    initException.setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                     throw initException;
                 }
             }
@@ -889,6 +901,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 } catch (Exception e) {
                     initException = new SchedulerException("ConnectionProvider class '" + cpClass
                             + "' could not be instantiated.", e);
+                    initException
+                            .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                     throw initException;
                 }
 
@@ -901,6 +915,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 } catch (Exception e) {
                     initException = new SchedulerException("ConnectionProvider class '" + cpClass
                             + "' props could not be configured.", e);
+                    initException
+                            .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                     throw initException;
                 }
 
@@ -997,7 +1013,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
             if (plugInClass == null) {
                 initException = new SchedulerException(
                         "SchedulerPlugin class not specified for plugin '"
-                                + pluginNames[i] + "'");
+                                + pluginNames[i] + "'",
+                        SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
             SchedulerPlugin plugin = null;
@@ -1008,6 +1025,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 initException = new SchedulerException(
                         "SchedulerPlugin class '" + plugInClass
                                 + "' could not be instantiated.", e);
+                initException
+                        .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
             try {
@@ -1016,6 +1035,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 initException = new SchedulerException(
                         "JobStore SchedulerPlugin '" + plugInClass
                                 + "' props could not be configured.", e);
+                initException
+                        .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
 
@@ -1025,7 +1046,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
         // Set up any JobListeners
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        Class<?>[] strArg = new Class[] { String.class };
+        Class[] strArg = new Class[] { String.class };
         String[] jobListenerNames = cfg.getPropertyGroups(PROP_JOB_LISTENER_PREFIX);
         JobListener[] jobListeners = new JobListener[jobListenerNames.length];
         for (int i = 0; i < jobListenerNames.length; i++) {
@@ -1037,7 +1058,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
             if (listenerClass == null) {
                 initException = new SchedulerException(
                         "JobListener class not specified for listener '"
-                                + jobListenerNames[i] + "'");
+                                + jobListenerNames[i] + "'",
+                        SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
             JobListener listener = null;
@@ -1048,6 +1070,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 initException = new SchedulerException(
                         "JobListener class '" + listenerClass
                                 + "' could not be instantiated.", e);
+                initException
+                        .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
             try {
@@ -1060,6 +1084,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 initException = new SchedulerException(
                         "JobListener '" + listenerClass
                                 + "' props could not be configured.", e);
+                initException
+                        .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
             jobListeners[i] = listener;
@@ -1079,7 +1105,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
             if (listenerClass == null) {
                 initException = new SchedulerException(
                         "TriggerListener class not specified for listener '"
-                                + triggerListenerNames[i] + "'");
+                                + triggerListenerNames[i] + "'",
+                        SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
             TriggerListener listener = null;
@@ -1090,6 +1117,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 initException = new SchedulerException(
                         "TriggerListener class '" + listenerClass
                                 + "' could not be instantiated.", e);
+                initException
+                        .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
             try {
@@ -1102,6 +1131,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 initException = new SchedulerException(
                         "TriggerListener '" + listenerClass
                                 + "' props could not be configured.", e);
+                initException
+                        .setErrorCode(SchedulerException.ERR_BAD_CONFIGURATION);
                 throw initException;
             }
             triggerListeners[i] = listener;
@@ -1132,7 +1163,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
                     schedInstId = DEFAULT_INSTANCE_ID;
                     if (js.isClustered()) {
                         if (js.getClass().getName().equals("org.terracotta.quartz.TerracottaJobStore")) {
-                            Class<? extends JobStore> c = js.getClass();
+                            Class c = js.getClass();
                             Method m = c.getMethod("getUUID");
                             if (m == null) {
                                 throw new RuntimeException("TerracottaJobStore does not have expected UUID property.");
@@ -1164,9 +1195,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
             rsrcs.setMakeSchedulerThreadDaemon(makeSchedulerThreadDaemon);
             rsrcs.setThreadsInheritInitializersClassLoadContext(threadsInheritInitalizersClassLoader);
             rsrcs.setRunUpdateCheck(!skipUpdateCheck);
-            rsrcs.setBatchTimeWindow(batchTimeWindow);
-            rsrcs.setMaxBatchSize(maxBatchSize);
-            rsrcs.setInterruptJobsOnShutdown(interruptJobsOnShutdown);
+            rsrcs.setInterruptJobsOnShutdown(interruptJobsOnShutdownWithWait);
             rsrcs.setInterruptJobsOnShutdownWithWait(interruptJobsOnShutdownWithWait);
             rsrcs.setJMXExport(jmxExport);
             rsrcs.setJMXObjectName(jmxObjectName);
@@ -1225,8 +1254,10 @@ public class StdSchedulerFactory implements SchedulerFactory {
             }
     
             // set scheduler context data...
-            for(Object key: schedCtxtProps.keySet()) {
-                String val = schedCtxtProps.getProperty((String) key);
+            Iterator itr = schedCtxtProps.keySet().iterator();
+            while(itr.hasNext()) {
+                String key = (String) itr.next();
+                String val = schedCtxtProps.getProperty(key);
     
                 scheduler.getContext().put(key, val);
             }
@@ -1299,7 +1330,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
         PropertyDescriptor[] propDescs = bi.getPropertyDescriptors();
         PropertiesParser pp = new PropertiesParser(props);
 
-        java.util.Enumeration<Object> keys = props.keys();
+        java.util.Enumeration keys = props.keys();
         while (keys.hasMoreElements()) {
             String name = (String) keys.nextElement();
             String c = name.substring(0, 1).toUpperCase(Locale.US);
@@ -1313,7 +1344,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
                             "No setter for property '" + name + "'");
                 }
 
-                Class<?>[] params = setMeth.getParameterTypes();
+                Class[] params = setMeth.getParameterTypes();
                 if (params.length != 1) {
                     throw new NoSuchMethodException(
                         "No 1-argument setter for property '" + name + "'");
@@ -1366,7 +1397,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
         return null;
     }
 
-    private Class<?> loadClass(String className) throws ClassNotFoundException, SchedulerConfigException {
+    private Class loadClass(String className) throws ClassNotFoundException, SchedulerConfigException {
 
         try {
             ClassLoader cl = findClassloader();
@@ -1391,6 +1422,11 @@ public class StdSchedulerFactory implements SchedulerFactory {
     private String getSchedulerName() {
         return cfg.getStringProperty(PROP_SCHED_INSTANCE_NAME,
                 "QuartzScheduler");
+    }
+
+    private String getSchedulerInstId() {
+        return cfg.getStringProperty(PROP_SCHED_INSTANCE_ID,
+                DEFAULT_INSTANCE_ID);
     }
 
     /**
@@ -1456,7 +1492,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
      * StdSchedulerFactory instance.).
      * </p>
      */
-    public Collection<Scheduler> getAllSchedulers() throws SchedulerException {
+    public Collection getAllSchedulers() throws SchedulerException {
         return SchedulerRepository.getInstance().lookupAll();
     }
 }

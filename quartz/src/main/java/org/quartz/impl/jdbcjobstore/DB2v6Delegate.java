@@ -57,7 +57,6 @@ public class DB2v6Delegate extends StdJDBCDelegate {
         super(logger, tablePrefix, instanceId, useProperties);
     }
 
-    @Override           
     public int selectNumJobs(Connection conn) throws SQLException {
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -78,7 +77,6 @@ public class DB2v6Delegate extends StdJDBCDelegate {
         }
     }
 
-    @Override           
     public int selectNumTriggersForJob(Connection conn, String jobName,
             String groupName) throws SQLException {
         PreparedStatement ps = null;
@@ -101,7 +99,6 @@ public class DB2v6Delegate extends StdJDBCDelegate {
         }
     }
 
-    @Override
     public int selectNumTriggers(Connection conn) throws SQLException {
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -122,7 +119,6 @@ public class DB2v6Delegate extends StdJDBCDelegate {
         }
     }
 
-    @Override           
     public int selectNumCalendars(Connection conn) throws SQLException {
         PreparedStatement ps = null;
         ResultSet rs = null;
