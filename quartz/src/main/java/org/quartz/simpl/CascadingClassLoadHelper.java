@@ -59,7 +59,7 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    private LinkedList<ClassLoadHelper> loadHelpers;
+    private LinkedList loadHelpers;
 
     private ClassLoadHelper bestCandidate;
 
@@ -77,14 +77,16 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
      * thread, which is the thread that is initializing Quartz.
      */
     public void initialize() {
-        loadHelpers = new LinkedList<ClassLoadHelper>();
+        loadHelpers = new LinkedList();
 
         loadHelpers.add(new LoadingLoaderClassLoadHelper());
         loadHelpers.add(new SimpleClassLoadHelper());
         loadHelpers.add(new ThreadContextClassLoadHelper());
         loadHelpers.add(new InitThreadContextClassLoadHelper());
         
-        for(ClassLoadHelper loadHelper: loadHelpers) {
+        Iterator iter = loadHelpers.iterator();
+        while (iter.hasNext()) {
+            ClassLoadHelper loadHelper = (ClassLoadHelper) iter.next();
             loadHelper.initialize();
         }
     }

@@ -1,7 +1,6 @@
 package org.quartz.core.jmx;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -79,9 +78,9 @@ public interface QuartzSchedulerMBean {
 	 */
 	TabularData getAllTriggers(String instanceId) throws SchedulerException;
 
-	List<String> getJobGroupNames(String instanceId) throws SchedulerException;
+	String[] getJobGroupNames(String instanceId) throws SchedulerException;
 
-	List<String> getJobNames(String instanceId, String groupName)
+	String[] getJobNames(String instanceId, String groupName)
 			throws SchedulerException;
 
 	/**
@@ -134,9 +133,9 @@ public interface QuartzSchedulerMBean {
 	void resumeJob(String instanceId, String jobName, String jobGroupName)
 			throws SchedulerException;
 
-	List<String> getTriggerGroupNames(String instanceId) throws SchedulerException;
+	String[] getTriggerGroupNames(String instanceId) throws SchedulerException;
 
-	List<String> getTriggerNames(String instanceId, String triggerGroupName)
+	String[] getTriggerNames(String instanceId, String triggerGroupName)
 			throws SchedulerException;
 
 	CompositeData getTrigger(String instanceId, String triggerName,
@@ -167,7 +166,7 @@ public interface QuartzSchedulerMBean {
 	void resumeTrigger(String instanceId, String triggerName,
 			String triggerGroupName) throws SchedulerException;
 
-	List<String> getCalendarNames(String instanceId) throws SchedulerException;
+	String[] getCalendarNames(String instanceId) throws SchedulerException;
 
 	void deleteCalendar(String instanceId, String name)
 			throws SchedulerException;

@@ -94,9 +94,9 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
 
     public static final String QUARTZ_NS = "http://www.quartz-scheduler.org/xml/JobSchedulingData";
 
-    public static final String QUARTZ_SCHEMA_WEB_URL = "http://www.quartz-scheduler.org/xml/job_scheduling_data_2_0.xsd";
+    public static final String QUARTZ_SCHEMA_WEB_URL = "http://www.quartz-scheduler.org/xml/job_scheduling_data_1_8.xsd";
     
-    public static final String QUARTZ_XSD_PATH_IN_JAR = "org/quartz/xml/job_scheduling_data_2_0.xsd";
+    public static final String QUARTZ_XSD_PATH_IN_JAR = "org/quartz/xml/job_scheduling_data_1_8.xsd";
 
     public static final String QUARTZ_XML_DEFAULT_FILE_NAME = "quartz_data.xml";
 
@@ -657,6 +657,19 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
                     jobRecoveryRequested);
             jobDetail.setDescription(jobDescription);
 
+            NodeList jobListenerEntries = (NodeList) xpath.evaluate(
+                    "q:job-listener-ref", jobDetailNode,
+                    XPathConstants.NODESET);
+            for (int j = 0; j < jobListenerEntries.getLength(); j++) {
+                Node listenerRefNode = jobListenerEntries.item(j);
+                String ref = listenerRefNode.getTextContent();
+                if(ref != null && (ref = ref.trim()).length() == 0)
+                    ref = null;
+                if(ref == null)
+                    continue;
+                jobDetail.addJobListener(ref);
+            }
+
             NodeList jobDataEntries = (NodeList) xpath.evaluate(
                     "q:job-data-map/q:entry", jobDetailNode,
                     XPathConstants.NODESET);
@@ -993,20 +1006,19 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
                 
                 if ((dupeJ.isDurable() && 
                     (sched.getTriggersOfJob(
-                        detail.getName(), detail.getGroup()).size() == 0))) {
+                        detail.getName(), detail.getGroup()).length == 0))) {
                     throw new SchedulerException(
                         "Can't change existing durable job without triggers to non-durable: " + 
                         detail.getFullName());
                 }
             }
             
-            
             if(dupeJ != null || detail.isDurable()) {
                 sched.addJob(detail, true); // add the job if a replacement or durable
             }
             else {
                 boolean addJobWithFirstSchedule = true;
-
+            
                 // Add triggers related to the job...
                 Iterator<Trigger> titr = triggersOfJob.iterator();
                 while(titr.hasNext()) {
