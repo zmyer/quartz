@@ -17,10 +17,8 @@
 
 package org.quartz.impl;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.management.ObjectName;
 
 import org.quartz.Scheduler;
@@ -29,6 +27,7 @@ import org.quartz.SchedulerFactory;
 import org.quartz.core.JobRunShellFactory;
 import org.quartz.core.QuartzScheduler;
 import org.quartz.core.QuartzSchedulerResources;
+import org.quartz.core.SchedulingContext;
 import org.quartz.simpl.CascadingClassLoadHelper;
 import org.quartz.simpl.RAMJobStore;
 import org.quartz.simpl.SimpleThreadPool;
@@ -36,8 +35,10 @@ import org.quartz.spi.ClassLoadHelper;
 import org.quartz.spi.JobStore;
 import org.quartz.spi.SchedulerPlugin;
 import org.quartz.spi.ThreadPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * <p>
@@ -248,12 +249,15 @@ public class DirectSchedulerFactory implements SchedulerFactory {
     public void createRemoteScheduler(String schedulerName,
             String schedulerInstanceId, String rmiBindName, String rmiHost, int rmiPort)
         throws SchedulerException {
+        SchedulingContext schedCtxt = new SchedulingContext();
+        schedCtxt.setInstanceId(schedulerInstanceId);
 
         String uid = (rmiBindName != null) ? rmiBindName :
             QuartzSchedulerResources.getUniqueIdentifier(
                 schedulerName, schedulerInstanceId);
 
-        RemoteScheduler remoteScheduler = new RemoteScheduler(uid, rmiHost, rmiPort);
+        RemoteScheduler remoteScheduler = new RemoteScheduler(schedCtxt, uid,
+                rmiHost, rmiPort);
 
         SchedulerRepository schedRep = SchedulerRepository.getInstance();
         schedRep.bind(remoteScheduler);
@@ -378,6 +382,8 @@ public class DirectSchedulerFactory implements SchedulerFactory {
 
         // Fire everything up
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        SchedulingContext schedCtxt = new SchedulingContext();
+        schedCtxt.setInstanceId(schedulerInstanceId);
 
         threadPool.initialize();
         
@@ -403,7 +409,8 @@ public class DirectSchedulerFactory implements SchedulerFactory {
             }
         }
 
-        QuartzScheduler qs = new QuartzScheduler(qrs, idleWaitTime, dbFailureRetryInterval);
+        QuartzScheduler qs = new QuartzScheduler(qrs, schedCtxt, idleWaitTime,
+                dbFailureRetryInterval);
 
         ClassLoadHelper cch = new CascadingClassLoadHelper();
         cch.initialize();
@@ -412,9 +419,9 @@ public class DirectSchedulerFactory implements SchedulerFactory {
 
         jobStore.initialize(cch, qs.getSchedulerSignaler());
 
-        Scheduler scheduler = new StdScheduler(qs);
+        Scheduler scheduler = new StdScheduler(qs, schedCtxt);
 
-        jrsf.initialize(scheduler);
+        jrsf.initialize(scheduler, schedCtxt);
 
         qs.initialize();
         

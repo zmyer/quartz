@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-import org.quartz.spi.ClassLoadHelper;
 import org.slf4j.Logger;
 
 /**
@@ -38,13 +37,13 @@ import org.slf4j.Logger;
  */
 public class DB2v7Delegate extends StdJDBCDelegate {
 
-    public DB2v7Delegate(Logger logger, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper) {
-        super(logger, tablePrefix, schedName, instanceId, classLoadHelper);
+    public DB2v7Delegate(Logger logger, String tablePrefix, String instanceId) {
+        super(logger, tablePrefix, instanceId);
     }
 
-    public DB2v7Delegate(Logger log, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper,
+    public DB2v7Delegate(Logger log, String tablePrefix, String instanceId,
             Boolean useProperties) {
-        super(log, tablePrefix, schedName, instanceId, classLoadHelper, useProperties);
+        super(log, tablePrefix, instanceId, useProperties);
     }
     
     /**
@@ -55,7 +54,6 @@ public class DB2v7Delegate extends StdJDBCDelegate {
      * <code>{@link PreparedStatement#setBytes(int, byte[])}</code> as required by the 
      * DB2 v7 database.
      */
-    @Override           
     protected void setBytes(PreparedStatement ps, int index, ByteArrayOutputStream baos) throws SQLException {
         ps.setObject(index, ((baos == null) ? null : baos.toByteArray()), java.sql.Types.BLOB);
     }
@@ -64,7 +62,6 @@ public class DB2v7Delegate extends StdJDBCDelegate {
      * Sets the designated parameter to the given Java <code>boolean</code> value.
      * This translates the boolean to 1/0 for true/false.
      */
-    @Override           
     protected void setBoolean(PreparedStatement ps, int index, boolean val) throws SQLException {
         ps.setString(index, ((val) ? "1" : "0"));
     }

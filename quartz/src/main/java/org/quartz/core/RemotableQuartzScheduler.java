@@ -22,22 +22,18 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.quartz.Calendar;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
-import org.quartz.JobKey;
+import org.quartz.JobListener;
 import org.quartz.SchedulerContext;
 import org.quartz.SchedulerException;
+import org.quartz.SchedulerListener;
 import org.quartz.Trigger;
-import org.quartz.TriggerKey;
+import org.quartz.TriggerListener;
 import org.quartz.UnableToInterruptJobException;
-import org.quartz.Trigger.TriggerState;
-import org.quartz.impl.matchers.GroupMatcher;
-import org.quartz.spi.OperableTrigger;
 
 /**
  * @author James House
@@ -56,7 +52,8 @@ public interface RemotableQuartzScheduler extends Remote {
 
     String getSchedulerInstanceId() throws RemoteException;
 
-    SchedulerContext getSchedulerContext() throws SchedulerException, RemoteException;
+    SchedulerContext getSchedulerContext() throws SchedulerException,
+            RemoteException;
 
     void start() throws SchedulerException, RemoteException;
 
@@ -88,82 +85,150 @@ public interface RemotableQuartzScheduler extends Remote {
 
     int getThreadPoolSize() throws RemoteException;
 
-    void clear() throws SchedulerException, RemoteException;
-    
-    List<JobExecutionContext> getCurrentlyExecutingJobs() throws SchedulerException, RemoteException;
+    List getCurrentlyExecutingJobs() throws SchedulerException,
+            RemoteException;
 
-    Date scheduleJob(JobDetail jobDetail, Trigger trigger) throws SchedulerException, RemoteException;
+    Date scheduleJob(SchedulingContext ctxt, JobDetail jobDetail,
+            Trigger trigger) throws SchedulerException, RemoteException;
 
-    Date scheduleJob(Trigger trigger) throws SchedulerException, RemoteException;
+    Date scheduleJob(SchedulingContext ctxt, Trigger trigger)
+        throws SchedulerException, RemoteException;
 
-    void addJob(JobDetail jobDetail, boolean replace) throws SchedulerException, RemoteException;
+    void addJob(SchedulingContext ctxt, JobDetail jobDetail,
+            boolean replace) throws SchedulerException, RemoteException;
 
-    boolean deleteJob(JobKey jobKey) throws SchedulerException, RemoteException;
+    boolean deleteJob(SchedulingContext ctxt, String jobName,
+            String groupName) throws SchedulerException, RemoteException;
 
-    boolean unscheduleJob(TriggerKey triggerKey) throws SchedulerException, RemoteException;
+    boolean unscheduleJob(SchedulingContext ctxt, String triggerName,
+            String groupName) throws SchedulerException, RemoteException;
 
-    Date rescheduleJob(TriggerKey triggerKey, Trigger newTrigger) throws SchedulerException, RemoteException;
+    Date rescheduleJob(SchedulingContext ctxt, String triggerName,
+            String groupName, Trigger newTrigger) throws SchedulerException, RemoteException;
         
-    void triggerJob(JobKey jobKey, JobDataMap data) throws SchedulerException, RemoteException;
-
-    void triggerJob(OperableTrigger trig) throws SchedulerException, RemoteException;
     
-    void pauseTrigger(TriggerKey triggerKey) throws SchedulerException, RemoteException;
+    void triggerJob(SchedulingContext ctxt, String jobName,
+            String groupName, JobDataMap data) throws SchedulerException, RemoteException;
 
-    void pauseTriggers(GroupMatcher<TriggerKey> matcher) throws SchedulerException, RemoteException;
+    void triggerJobWithVolatileTrigger(SchedulingContext ctxt,
+            String jobName, String groupName, JobDataMap data) throws SchedulerException,
+            RemoteException;
 
-    void pauseJob(JobKey jobKey) throws SchedulerException, RemoteException;
+    void pauseTrigger(SchedulingContext ctxt, String triggerName,
+            String groupName) throws SchedulerException, RemoteException;
 
-    void pauseJobs(GroupMatcher<JobKey> matcher) throws SchedulerException, RemoteException;
+    void pauseTriggerGroup(SchedulingContext ctxt, String groupName)
+        throws SchedulerException, RemoteException;
 
-    void resumeTrigger(TriggerKey triggerKey) throws SchedulerException, RemoteException;
+    void pauseJob(SchedulingContext ctxt, String jobName,
+            String groupName) throws SchedulerException, RemoteException;
 
-    void resumeTriggers(GroupMatcher<TriggerKey> matcher) throws SchedulerException, RemoteException;
+    void pauseJobGroup(SchedulingContext ctxt, String groupName)
+        throws SchedulerException, RemoteException;
 
-    Set<String> getPausedTriggerGroups() throws SchedulerException, RemoteException;
+    void resumeTrigger(SchedulingContext ctxt, String triggerName,
+            String groupName) throws SchedulerException, RemoteException;
+
+    void resumeTriggerGroup(SchedulingContext ctxt, String groupName)
+        throws SchedulerException, RemoteException;
+
+    Set getPausedTriggerGroups(SchedulingContext ctxt)
+        throws SchedulerException, RemoteException;
     
-    void resumeJob(JobKey jobKey) throws SchedulerException, RemoteException;
+    void resumeJob(SchedulingContext ctxt, String jobName,
+            String groupName) throws SchedulerException, RemoteException;
 
-    void resumeJobs(GroupMatcher<JobKey> matcher) throws SchedulerException, RemoteException;
+    void resumeJobGroup(SchedulingContext ctxt, String groupName)
+        throws SchedulerException, RemoteException;
 
-    void pauseAll() throws SchedulerException, RemoteException;
+    void pauseAll(SchedulingContext ctxt) throws SchedulerException,
+            RemoteException;
 
-    void resumeAll() throws SchedulerException, RemoteException;
+    void resumeAll(SchedulingContext ctxt) throws SchedulerException,
+            RemoteException;
 
-    List<String> getJobGroupNames() throws SchedulerException, RemoteException;
+    String[] getJobGroupNames(SchedulingContext ctxt)
+        throws SchedulerException, RemoteException;
 
-    Set<JobKey> getJobKeys(GroupMatcher<JobKey> matcher) throws SchedulerException, RemoteException;
+    String[] getJobNames(SchedulingContext ctxt, String groupName)
+        throws SchedulerException, RemoteException;
 
-    List<? extends Trigger> getTriggersOfJob(JobKey jobKey) throws SchedulerException, RemoteException;
+    Trigger[] getTriggersOfJob(SchedulingContext ctxt, String jobName,
+            String groupName) throws SchedulerException, RemoteException;
 
-    List<String> getTriggerGroupNames() throws SchedulerException, RemoteException;
+    String[] getTriggerGroupNames(SchedulingContext ctxt)
+        throws SchedulerException, RemoteException;
 
-    Set<TriggerKey> getTriggerKeys(GroupMatcher<TriggerKey> matcher) throws SchedulerException, RemoteException;
+    String[] getTriggerNames(SchedulingContext ctxt, String groupName)
+        throws SchedulerException, RemoteException;
 
-    JobDetail getJobDetail(JobKey jobKey) throws SchedulerException, RemoteException;
+    JobDetail getJobDetail(SchedulingContext ctxt, String jobName,
+            String jobGroup) throws SchedulerException, RemoteException;
 
-    Trigger getTrigger(TriggerKey triggerKey) throws SchedulerException, RemoteException;
+    Trigger getTrigger(SchedulingContext ctxt, String triggerName,
+            String triggerGroup) throws SchedulerException, RemoteException;
 
-    TriggerState getTriggerState(TriggerKey triggerKey) throws SchedulerException, RemoteException;
+    int getTriggerState(SchedulingContext ctxt, String triggerName,
+            String triggerGroup) throws SchedulerException, RemoteException;
 
-    void addCalendar(String calName, Calendar calendar, boolean replace, boolean updateTriggers) throws SchedulerException, RemoteException;
+    void addCalendar(SchedulingContext ctxt, String calName,
+            Calendar calendar, boolean replace, boolean updateTriggers) throws SchedulerException,
+            RemoteException;
 
-    boolean deleteCalendar(String calName) throws SchedulerException, RemoteException;
+    boolean deleteCalendar(SchedulingContext ctxt, String calName)
+        throws SchedulerException, RemoteException;
 
-    Calendar getCalendar(String calName) throws SchedulerException, RemoteException;
+    Calendar getCalendar(SchedulingContext ctxt, String calName)
+        throws SchedulerException, RemoteException;
 
-    List<String> getCalendarNames() throws SchedulerException, RemoteException;
+    String[] getCalendarNames(SchedulingContext ctxt)
+        throws SchedulerException, RemoteException;
 
-    boolean interrupt(JobKey jobKey) throws UnableToInterruptJobException,RemoteException;
-    
-    boolean checkExists(JobKey jobKey) throws SchedulerException,RemoteException; 
-   
-    boolean checkExists(TriggerKey triggerKey) throws SchedulerException,RemoteException;
- 
-    public boolean deleteJobs(List<JobKey> jobKeys) throws SchedulerException,RemoteException;
+    void addGlobalJobListener(JobListener jobListener)
+        throws RemoteException;
 
-    public void scheduleJobs(Map<JobDetail, List<Trigger>> triggersAndJobs, boolean replace) throws SchedulerException,RemoteException;
+    void addJobListener(JobListener jobListener) throws RemoteException;
 
-    public boolean unscheduleJobs(List<TriggerKey> triggerKeys) throws SchedulerException,RemoteException;
-    
+    boolean removeGlobalJobListener(String name) throws RemoteException;
+
+    boolean removeJobListener(String name) throws RemoteException;
+
+    List getGlobalJobListeners() throws RemoteException;
+
+    Set getJobListenerNames() throws RemoteException;
+
+    JobListener getGlobalJobListener(String name) throws RemoteException;
+
+    JobListener getJobListener(String name) throws RemoteException;
+
+    void addGlobalTriggerListener(TriggerListener triggerListener)
+        throws RemoteException;
+
+    void addTriggerListener(TriggerListener triggerListener)
+        throws RemoteException;
+
+    boolean removeGlobalTriggerListener(String name)
+        throws RemoteException;
+
+    boolean removeTriggerListener(String name) throws RemoteException;
+
+    List getGlobalTriggerListeners() throws RemoteException;
+
+    Set getTriggerListenerNames() throws RemoteException;
+
+    TriggerListener getGlobalTriggerListener(String name)
+        throws RemoteException;
+
+    TriggerListener getTriggerListener(String name)
+        throws RemoteException;
+
+    void addSchedulerListener(SchedulerListener schedulerListener)
+        throws RemoteException;
+
+    boolean removeSchedulerListener(SchedulerListener schedulerListener)
+        throws RemoteException;
+
+    List getSchedulerListeners() throws RemoteException;
+
+    boolean interrupt(SchedulingContext ctxt, String jobName, String groupName) throws UnableToInterruptJobException,RemoteException ;
 }

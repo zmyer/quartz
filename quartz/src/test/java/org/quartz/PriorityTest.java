@@ -16,15 +16,19 @@
 package org.quartz;
 
 import java.util.Calendar;
-import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 
 import junit.framework.TestCase;
 
-import org.quartz.impl.JobDetailImpl;
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.quartz.Scheduler;
+import org.quartz.SimpleTrigger;
+import org.quartz.StatefulJob;
+import org.quartz.Trigger;
 import org.quartz.impl.StdSchedulerFactory;
-import org.quartz.impl.triggers.SimpleTriggerImpl;
-import org.quartz.spi.MutableTrigger;
 
 /**
  * Test Trigger priority support.
@@ -37,7 +41,7 @@ public class PriorityTest extends TestCase {
     public static class TestJob implements StatefulJob {
         public void execute(JobExecutionContext context)
                 throws JobExecutionException {
-            result.append(context.getTrigger().getKey().getName());
+            result.append(context.getTrigger().getName());
             latch.countDown();
         }
     }
@@ -49,23 +53,19 @@ public class PriorityTest extends TestCase {
     }
 
     public void testSameDefaultPriority() throws Exception {
-        Properties config = new Properties();
-        config.setProperty("org.quartz.threadPool.threadCount", "1");
-        config.setProperty("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
-
-        Scheduler sched = new StdSchedulerFactory(config).getScheduler();
+        Scheduler sched = StdSchedulerFactory.getDefaultScheduler();
 
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.SECOND, 1);
 
-        MutableTrigger trig1 = new SimpleTriggerImpl("T1", null, cal.getTime());
-        MutableTrigger trig2 = new SimpleTriggerImpl("T2", null, cal.getTime());
+        Trigger trig1 = new SimpleTrigger("T1", null, cal.getTime());
+        Trigger trig2 = new SimpleTrigger("T2", null, cal.getTime());
 
-        JobDetail jobDetail = new JobDetailImpl("JD", null, TestJob.class);
+        JobDetail jobDetail = new JobDetail("JD", null, TestJob.class);
 
         sched.scheduleJob(jobDetail, trig1);
 
-        trig2.setJobKey(new JobKey(jobDetail.getKey().getName()));
+        trig2.setJobName(jobDetail.getName());
         sched.scheduleJob(trig2);
 
         sched.start();
@@ -78,26 +78,22 @@ public class PriorityTest extends TestCase {
     }
 
     public void testDifferentPriority() throws Exception {
-        Properties config = new Properties();
-        config.setProperty("org.quartz.threadPool.threadCount", "1");
-        config.setProperty("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
-
-        Scheduler sched = new StdSchedulerFactory(config).getScheduler();
+        Scheduler sched = StdSchedulerFactory.getDefaultScheduler();
 
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.SECOND, 1);
 
-        MutableTrigger trig1 = new SimpleTriggerImpl("T1", null, cal.getTime());
+        Trigger trig1 = new SimpleTrigger("T1", null, cal.getTime());
         trig1.setPriority(5);
 
-        MutableTrigger trig2 = new SimpleTriggerImpl("T2", null, cal.getTime());
+        Trigger trig2 = new SimpleTrigger("T2", null, cal.getTime());
         trig2.setPriority(10);
 
-        JobDetail jobDetail = new JobDetailImpl("JD", null, TestJob.class);
+        JobDetail jobDetail = new JobDetail("JD", null, TestJob.class);
 
         sched.scheduleJob(jobDetail, trig1);
 
-        trig2.setJobKey(new JobKey(jobDetail.getKey().getName(), null));
+        trig2.setJobName(jobDetail.getName());
         sched.scheduleJob(trig2);
 
         sched.start();

@@ -28,21 +28,21 @@ public class JobExecutionContextSupport {
 	private static final String COMPOSITE_TYPE_NAME = "JobExecutionContext";
 	private static final String COMPOSITE_TYPE_DESCRIPTION = "Job Execution Instance Details";
 	private static final String[] ITEM_NAMES = new String[] { "schedulerName",
-			"triggerName", "triggerGroup", "jobName", "jobGroup", "jobDataMap", "calendarName",
+			"triggerName", "jobName", "jobDataMap", "calendarName",
 			"recovering", "refireCount", "fireTime", "scheduledFireTime",
 			"previousFireTime", "nextFireTime", "jobRunTime" };
 	private static final String[] ITEM_DESCRIPTIONS = new String[] {
-			"schedulerName", "triggerName", "triggerGroup", "jobName", "jobGroup", "jobDataMap",
+			"schedulerName", "triggerName", "jobName", "jobDataMap",
 			"calendarName", "recovering", "refireCount", "fireTime",
 			"scheduledFireTime", "previousFireTime", "nextFireTime", "jobRunTime" };
 	private static final OpenType[] ITEM_TYPES = new OpenType[] { STRING,
-			STRING, STRING, STRING, STRING, JobDataMapSupport.TABULAR_TYPE, STRING, BOOLEAN,
+			STRING, STRING, JobDataMapSupport.TABULAR_TYPE, STRING, BOOLEAN,
 			INTEGER, DATE, DATE, DATE, DATE, LONG };
 	private static final CompositeType COMPOSITE_TYPE;
 	private static final String TABULAR_TYPE_NAME = "JobExecutionContextArray";
 	private static final String TABULAR_TYPE_DESCRIPTION = "Array of composite JobExecutionContext";
 	private static final String[] INDEX_NAMES = new String[] { "schedulerName",
-			"triggerName", "triggerGroup", "jobName", "jobGroup", "fireTime" };
+			"triggerName", "jobName" };
 	private static final TabularType TABULAR_TYPE;
 
 	static {
@@ -66,10 +66,8 @@ public class JobExecutionContextSupport {
 			return new CompositeDataSupport(COMPOSITE_TYPE, ITEM_NAMES,
 					new Object[] {
 							jec.getScheduler().getSchedulerName(),
-							jec.getTrigger().getKey().getName(),
-							jec.getTrigger().getKey().getGroup(),
-							jec.getJobDetail().getKey().getName(),
-							jec.getJobDetail().getKey().getGroup(),
+							jec.getTrigger().getFullName(),
+							jec.getJobDetail().getFullName(),
 							JobDataMapSupport.toTabularData(jec
 									.getMergedJobDataMap()),
 							determineCalendarName(jec),
@@ -86,18 +84,16 @@ public class JobExecutionContextSupport {
 	private static String determineCalendarName(JobExecutionContext jec) {
 		try {
 			Calendar cal = jec.getCalendar();
-			if(cal != null) {
-				for (String name : jec.getScheduler().getCalendarNames()) {
-					Calendar ocal = jec.getScheduler().getCalendar(name);
-					if (ocal != null && ocal.equals(cal)) {
-						return name;
-					}
+			for (String name : jec.getScheduler().getCalendarNames()) {
+				Calendar ocal = jec.getScheduler().getCalendar(name);
+				if (ocal != null && ocal.equals(cal)) {
+					return name;
 				}
 			}
 		} catch (SchedulerException se) {
 			/**/
 		}
-		return "";
+		return "unknown";
 	}
 
 	/**

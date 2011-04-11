@@ -1,12 +1,14 @@
 package org.quartz.core.jmx;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
+
+import org.quartz.SchedulerException;
+import org.quartz.UnableToInterruptJobException;
 
 public interface QuartzSchedulerMBean {
 	static final String SCHEDULER_STARTED = "schedulerStarted";
@@ -18,7 +20,6 @@ public interface QuartzSchedulerMBean {
 	static final String JOB_DELETED = "jobDeleted";
 	static final String JOB_SCHEDULED = "jobScheduled";
 	static final String JOB_UNSCHEDULED = "jobUnscheduled";
-	
 	static final String JOBS_PAUSED = "jobsPaused";
 	static final String JOBS_RESUMED = "jobsResumed";
 
@@ -27,11 +28,8 @@ public interface QuartzSchedulerMBean {
 	static final String JOB_WAS_EXECUTED = "jobWasExecuted";
 
 	static final String TRIGGER_FINALIZED = "triggerFinalized";
-
 	static final String TRIGGERS_PAUSED = "triggersPaused";
 	static final String TRIGGERS_RESUMED = "triggersResumed";
-
-    static final String SCHEDULING_DATA_CLEARED = "schedulingDataCleared";
 
 	static final String SAMPLED_STATISTICS_ENABLED = "sampledStatisticsEnabled";
 	static final String SAMPLED_STATISTICS_RESET = "sampledStatisticsReset";
@@ -62,254 +60,116 @@ public interface QuartzSchedulerMBean {
 
 	/**
 	 * @return TabularData of CompositeData:JobExecutionContext
-	 * @throws Exception
+	 * @throws SchedulerException
 	 */
-	TabularData getCurrentlyExecutingJobs() throws Exception;
+	TabularData getCurrentlyExecutingJobs() throws SchedulerException;
 
 	/**
 	 * @return TabularData of CompositeData:JobDetail
-	 * @throws Exception
+	 * @throws SchedulerException
 	 * @see JobDetailSupport
 	 */
-	TabularData getAllJobDetails() throws Exception;
+	TabularData getAllJobDetails(String instanceId) throws SchedulerException;
 
 	/**
-	 * @return List of CompositeData:[CronTrigger|SimpleTrigger]
-	 * @throws Exception
+	 * @return TabularData of CompositeData:Trigger
+	 * @throws SchedulerException
 	 * @see TriggerSupport
 	 */
-	List<CompositeData> getAllTriggers() throws Exception;
+	TabularData getAllTriggers(String instanceId) throws SchedulerException;
 
-	List<String> getJobGroupNames() throws Exception;
+	String[] getJobGroupNames(String instanceId) throws SchedulerException;
 
-	List<String> getJobNames(String groupName)
-			throws Exception;
+	String[] getJobNames(String instanceId, String groupName)
+			throws SchedulerException;
 
 	/**
 	 * @return CompositeData:JobDetail
-	 * @throws Exception
+	 * @throws SchedulerException
 	 * @see JobDetailSupport
 	 */
-	CompositeData getJobDetail(String jobName, String jobGroupName) throws Exception;
+	CompositeData getJobDetail(String instanceId, String jobName,
+			String jobGroupName) throws SchedulerException;
 
 	boolean isStarted();
 
-	void start() throws Exception;
+	void start() throws SchedulerException;
 
 	void shutdown();
 
 	void standby();
 
-	void clear() throws Exception;
-	
-	/**
-	 * Schedule an existing job with an existing trigger.
-	 * 
-	 * @param jobName
-	 * @param jobGroup
-	 * @param triggerName
-	 * @param triggerGroup
-	 * @return date of nextFireTime
-	 * @throws Exception
-	 */
-	Date scheduleJob(String jobName, String jobGroup,
-			String triggerName, String triggerGroup) throws Exception;
+	Date scheduleJob(String instanceId, String jobName, String jobGroup,
+			String triggerName, String triggerGroup) throws SchedulerException;
 
-	/**
-	 * Schedules a job using the given Cron/Simple triggerInfo.
-	 * 
-	 * The triggerInfo and jobDetailInfo must contain well-known attribute values.
-	 *     TriggerInfo attributes: name, group, description, calendarName, priority,
-	 *       CronExpression | (startTime, endTime, repeatCount, repeatInterval) 
-	 *     JobDetailInfo attributes: name, group, description, jobClass, jobDataMap, durability,
-	 *       shouldRecover
-	 */
-	void scheduleBasicJob(Map<String, Object> jobDetailInfo, Map<String, Object> triggerInfo)
-			throws Exception;
+	boolean unscheduleJob(String instanceId, String triggerName,
+			String triggerGroup) throws SchedulerException;
 
-	/**
-	 * Schedules an arbitrary job described by abstractJobInfo using a trigger specified by abstractTriggerInfo.
-	 * 
-	 * AbtractTriggerInfo and AbstractJobInfo must contain the following String attributes.
-	 *     AbstractTriggerInfo: triggerClass, the fully-qualified class name of a concrete Trigger type
-	 *     AbstractJobInfo: jobDetailClass, the fully-qualified class name of a concrete JobDetail type
-	 *
-	 * If the Trigger and JobDetail can be successfully instantiated, the remaining attributes will be
-	 * reflectively applied to those instances. The remaining attributes are limited to the types:
-	 *   Integer, Double, Float, String, Boolean, Date, Character, Map<String, Object>.
-	 * Maps are further limited to containing values from the same set of types, less Map itself.
-	 * 
-	 * @throws Exception 
-	 */
-	void scheduleJob(Map<String, Object> abstractJobInfo,
-			Map<String, Object> abstractTriggerInfo) throws Exception;
-	
-	/**
-	 * Schedules the specified job using a trigger described by abstractTriggerInfo, which must contain the
-	 * fully-qualified trigger class name under the key "triggerClass."  That trigger type must contain a
-	 * no-arg constructor and have public access. Other attributes are applied reflectively and are limited
-	 * to the types:
-	 *   Integer, Double, Float, String, Boolean, Date, Character, Map<String, Object>.
-	 * Maps are limited to containing values from the same set of types, less Map itself.
-	 * 
-	 * @param jobName
-	 * @param jobGroup
-	 * @param abstractTriggerInfo
-	 * @throws Exception
-	 */
-	void scheduleJob(String jobName, String jobGroup,
-			Map<String, Object> abstractTriggerInfo) throws Exception;
-	
-	boolean unscheduleJob(String triggerName, String triggerGroup) throws Exception;
+	boolean interruptJob(String instanceId, String jobName, String jobGroupName)
+			throws UnableToInterruptJobException;
 
-	boolean interruptJob(String jobName, String jobGroupName) throws Exception;
+	void triggerJob(String instanceId, String jobName, String jobGroupName,
+			Map<String, String> jobDataMap) throws SchedulerException;
 
-	void triggerJob(String jobName, String jobGroupName,
-			Map<String, String> jobDataMap) throws Exception;
+	void triggerJobWithVolatileTrigger(String instanceId, String jobName,
+			String jobGroupName, Map<String, String> jobDataMap)
+			throws SchedulerException;
 
-	boolean deleteJob(String jobName, String jobGroupName)
-			throws Exception;
+	boolean deleteJob(String instanceId, String jobName, String jobGroupName)
+			throws SchedulerException;
 
-	void addJob(CompositeData jobDetail, boolean replace) throws Exception;
+	void addJob(String instanceId, CompositeData jobDetail, boolean replace)
+			throws SchedulerException;
 
-	/**
-	 * Adds a durable job described by abstractJobInfo, which must contain the fully-qualified JobDetail
-	 * class name under the key "jobDetailClass."  That JobDetail type must contain a no-arg constructor
-	 * and have public access. Other attributes are applied reflectively and are limited
-	 * to the types:
-	 *   Integer, Double, Float, String, Boolean, Date, Character, Map<String, Object>.
-	 * Maps are limited to containing values from the same set of types, less Map itself.
-	 * 
-	 * @param jobDetailMap
-	 * @param replace
-	 * @throws Exception
-	 */
-	void addJob(Map<String, Object> abstractJobInfo, boolean replace)
-			throws Exception;
+	void pauseJobGroup(String instanceId, String jobGroupName)
+			throws SchedulerException;
 
-	void pauseJobGroup(String jobGroup) throws Exception;
+	void resumeJobGroup(String instanceId, String jobGroupName)
+			throws SchedulerException;
 
-	/**
-	 * Pause all jobs whose group starts with jobGroupPrefix
-	 * @param jobGroupPrefix
-	 * @throws Exception
-	 */
-	void pauseJobsStartingWith(String jobGroupPrefix) throws Exception;
+	void pauseJob(String instanceId, String jobName, String groupName)
+			throws SchedulerException;
 
-	/**
-	 * Pause all jobs whose group ends with jobGroupSuffix
-	 * @param jobGroupSuffix
-	 * @throws Exception
-	 */
-	void pauseJobsEndingWith(String jobGroupSuffix) throws Exception;
+	void resumeJob(String instanceId, String jobName, String jobGroupName)
+			throws SchedulerException;
 
-	/**
-	 * Pause all jobs whose group contains jobGroupToken
-	 * @param jobGroupToken
-	 * @throws Exception
-	 */
-	void pauseJobsContaining(String jobGroupToken) throws Exception;
-	
-	void resumeJobGroup(String jobGroup) throws Exception;
+	String[] getTriggerGroupNames(String instanceId) throws SchedulerException;
 
-	/**
-	 * Resume all jobs whose group starts with jobGroupPrefix
-	 * @param jobGroupPrefix
-	 * @throws Exception
-	 */
-	void resumeJobsStartingWith(String jobGroupPrefix) throws Exception;
+	String[] getTriggerNames(String instanceId, String triggerGroupName)
+			throws SchedulerException;
 
-	/**
-	 * Resume all jobs whose group ends with jobGroupSuffix
-	 * @param jobGroupSuffix
-	 * @throws Exception
-	 */
-	void resumeJobsEndingWith(String jobGroupSuffix) throws Exception;
+	CompositeData getTrigger(String instanceId, String triggerName,
+			String triggerGroupName) throws SchedulerException;
 
-	/**
-	 * Resume all jobs whose group contains jobGroupToken
-	 * @param jobGroupToken
-	 * @throws Exception
-	 */
-	void resumeJobsContaining(String jobGroupToken) throws Exception;
+	int getTriggerState(String instanceId, String triggerName,
+			String triggerGroupName) throws SchedulerException;
 
-	void pauseJob(String jobName, String groupName) throws Exception;
+	TabularData getTriggersOfJob(String instanceId, String jobName,
+			String jobGroupName) throws SchedulerException;
 
-	void resumeJob(String jobName, String jobGroupName)	throws Exception;
+	Set<String> getPausedTriggerGroups(String instanceId)
+			throws SchedulerException;
 
-	List<String> getTriggerGroupNames() throws Exception;
+	void pauseAllTriggers(String instanceId) throws SchedulerException;
 
-	List<String> getTriggerNames(String triggerGroupName) throws Exception;
+	void resumeAllTriggers(String instanceId) throws SchedulerException;
 
-	CompositeData getTrigger(String triggerName, String triggerGroupName) throws Exception;
+	void pauseTriggerGroup(String instanceId, String groupName)
+			throws SchedulerException;
 
-	String getTriggerState(String triggerName, String triggerGroupName) throws Exception;
+	void resumeTriggerGroup(String instanceId, String groupName)
+			throws SchedulerException;
 
-	/**
-	 * @return List of CompositeData:[CronTrigger|SimpleTrigger] for the specified job.
-	 * @see TriggerSupport
-	 */
-	List<CompositeData> getTriggersOfJob(String jobName, String jobGroupName) throws Exception;
+	void pauseTrigger(String instanceId, String triggerName,
+			String triggerGroupName) throws SchedulerException;
 
-	Set<String> getPausedTriggerGroups() throws Exception;
+	void resumeTrigger(String instanceId, String triggerName,
+			String triggerGroupName) throws SchedulerException;
 
-	void pauseAllTriggers() throws Exception;
+	String[] getCalendarNames(String instanceId) throws SchedulerException;
 
-	void resumeAllTriggers() throws Exception;
-
-	void pauseTriggerGroup(String triggerGroup) throws Exception;
-
-	/**
-	 * Pause all triggers whose group starts with triggerGroupPrefix
-	 * @param triggerGroupPrefix
-	 * @throws Exception
-	 */
-	void pauseTriggersStartingWith(String triggerGroupPrefix) throws Exception;
-
-	/**
-	 * Pause all triggers whose group ends with triggerGroupSuffix
-	 * @param triggerGroupSuffix
-	 * @throws Exception
-	 */
-	void pauseTriggersEndingWith(String suffix) throws Exception;
-
-	/**
-	 * Pause all triggers whose group contains triggerGroupToken
-	 * @param triggerGroupToken
-	 * @throws Exception
-	 */
-	void pauseTriggersContaining(String triggerGroupToken) throws Exception;
-
-	void resumeTriggerGroup(String triggerGroup) throws Exception;
-
-	/**
-	 * Resume all triggers whose group starts with triggerGroupPrefix
-	 * @param triggerGroupPrefix
-	 * @throws Exception
-	 */
-	void resumeTriggersStartingWith(String triggerGroupPrefix) throws Exception;
-
-	/**
-	 * Resume all triggers whose group ends with triggerGroupSuffix
-	 * @param triggerGroupSuffix
-	 * @throws Exception
-	 */
-	void resumeTriggersEndingWith(String triggerGroupSuffix) throws Exception;
-
-	/**
-	 * Resume all triggers whose group contains triggerGroupToken
-	 * @param triggerGroupToken
-	 * @throws Exception
-	 */
-	void resumeTriggersContaining(String triggerGroupToken) throws Exception;
-
-	void pauseTrigger(String triggerName, String triggerGroupName) throws Exception;
-
-	void resumeTrigger(String triggerName, String triggerGroupName) throws Exception;
-
-	List<String> getCalendarNames() throws Exception;
-
-	void deleteCalendar(String name) throws Exception;
+	void deleteCalendar(String instanceId, String name)
+			throws SchedulerException;
 
 	void setSampledStatisticsEnabled(boolean enabled);
 

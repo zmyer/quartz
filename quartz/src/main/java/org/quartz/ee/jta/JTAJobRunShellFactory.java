@@ -20,10 +20,9 @@ package org.quartz.ee.jta;
 
 import org.quartz.Scheduler;
 import org.quartz.SchedulerConfigException;
-import org.quartz.SchedulerException;
 import org.quartz.core.JobRunShell;
 import org.quartz.core.JobRunShellFactory;
-import org.quartz.spi.TriggerFiredBundle;
+import org.quartz.core.SchedulingContext;
 
 /**
  * <p>
@@ -50,6 +49,8 @@ public class JTAJobRunShellFactory implements JobRunShellFactory {
      */
 
     private Scheduler scheduler;
+
+    private SchedulingContext schedCtxt;
 
     /*
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -79,9 +80,10 @@ public class JTAJobRunShellFactory implements JobRunShellFactory {
      * operations with the <code>JobStore</code>.
      * </p>
      */
-    public void initialize(Scheduler scheduler)
+    public void initialize(Scheduler scheduler, SchedulingContext schedCtxt)
         throws SchedulerConfigException {
         this.scheduler = scheduler;
+        this.schedCtxt = schedCtxt;
     }
 
     /**
@@ -91,11 +93,19 @@ public class JTAJobRunShellFactory implements JobRunShellFactory {
      * {@link org.quartz.core.JobRunShell}</code>.
      * </p>
      */
-    public JobRunShell createJobRunShell(TriggerFiredBundle bundle)
-            throws SchedulerException {
-        return new JTAJobRunShell(scheduler, bundle);
+    public JobRunShell borrowJobRunShell() {
+        return new JTAJobRunShell(this, scheduler, schedCtxt);
     }
 
-
+    /**
+     * <p>
+     * Called by the <class>{@link org.quartz.core.QuartzSchedulerThread}
+     * </code> to return instances of <code>
+     * {@link org.quartz.core.JobRunShell}</code>.
+     * </p>
+     */
+    public void returnJobRunShell(JobRunShell jobRunShell) {
+        jobRunShell.passivate();
+    }
 
 }

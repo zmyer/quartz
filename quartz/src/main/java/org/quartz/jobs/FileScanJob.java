@@ -21,14 +21,13 @@ import java.io.File;
 import java.net.URL;
 import java.net.URLDecoder;
 
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import org.quartz.PersistJobDataAfterExecution;
 import org.quartz.SchedulerContext;
 import org.quartz.SchedulerException;
+import org.quartz.StatefulJob;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,36 +42,10 @@ import org.slf4j.LoggerFactory;
  * @author pl47ypus
  * @see org.quartz.jobs.FileScanListener
  */
-@DisallowConcurrentExecution
-@PersistJobDataAfterExecution
-public class FileScanJob implements Job {
+public class FileScanJob implements StatefulJob {
 
-    /**
-     * <code>JobDataMap</code> key with which to specify 
-     * the name of the file to monitor.
-     */
     public static final String FILE_NAME = "FILE_NAME";
-    
-    /**
-     * <code>JobDataMap</code> key with which to specify the 
-     * {@link org.quartz.jobs.FileScanListener} to be 
-     * notified when the file contents change.  
-     */
     public static final String FILE_SCAN_LISTENER_NAME = "FILE_SCAN_LISTENER_NAME";
-    
-    /**
-     * <code>JobDataMap</code> key with which to specify a <code>long</code>
-     * value that represents the minimum number of milliseconds that must have
-     * past since the file's last modified time in order to consider the file
-     * new/altered.  This is necessary because another process may still be
-     * in the middle of writing to the file when the scan occurs, and the
-     * file may therefore not yet be ready for processing.
-     * 
-     * <p>If this parameter is not specified, a default value of 
-     * <code>5000</code> (five seconds) will be used.</p>
-     */
-    public static final String MINIMUM_UPDATE_AGE = "MINIMUM_UPDATE_AGE";
-
     private static final String LAST_MODIFIED_TIME = "LAST_MODIFIED_TIME";
     
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -115,22 +88,15 @@ public class FileScanJob implements Job {
         if(mergedJobDataMap.containsKey(LAST_MODIFIED_TIME)) {
             lastDate = mergedJobDataMap.getLong(LAST_MODIFIED_TIME);
         }
-
-        long minAge = 5000;
-        if(mergedJobDataMap.containsKey(MINIMUM_UPDATE_AGE)) {
-            minAge = mergedJobDataMap.getLong(MINIMUM_UPDATE_AGE);
-        }
-        long maxAgeDate = System.currentTimeMillis() + minAge;
-        
         
         long newDate = getLastModifiedDate(fileName);
-        
+
         if(newDate < 0) {
             log.warn("File '"+fileName+"' does not exist.");
             return;
         }
         
-        if(lastDate > 0 && (newDate > lastDate && newDate < maxAgeDate)) {
+        if(lastDate > 0 && (newDate != lastDate)) {
             // notify call back...
             log.info("File '"+fileName+"' updated, notifying listener.");
             listener.fileUpdated(fileName); 

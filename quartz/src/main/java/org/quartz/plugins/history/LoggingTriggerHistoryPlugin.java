@@ -26,8 +26,6 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.TriggerListener;
-import org.quartz.Trigger.CompletedExecutionInstruction;
-import org.quartz.impl.matchers.EverythingMatcher;
 import org.quartz.spi.SchedulerPlugin;
 
 /**
@@ -332,7 +330,7 @@ public class LoggingTriggerHistoryPlugin implements SchedulerPlugin,
         throws SchedulerException {
         this.name = name;
 
-        scheduler.getListenerManager().addTriggerListener(this,  EverythingMatcher.allTriggers());
+        scheduler.addGlobalTriggerListener(this);
     }
 
     public void start() {
@@ -376,11 +374,11 @@ public class LoggingTriggerHistoryPlugin implements SchedulerPlugin,
         } 
         
         Object[] args = {
-            trigger.getKey().getName(), trigger.getKey().getGroup(),
+            trigger.getName(), trigger.getGroup(),
             trigger.getPreviousFireTime(), trigger.getNextFireTime(),
-            new java.util.Date(), context.getJobDetail().getKey().getName(),
-            context.getJobDetail().getKey().getGroup(),
-            Integer.valueOf(context.getRefireCount())
+            new java.util.Date(), context.getJobDetail().getName(),
+            context.getJobDetail().getGroup(),
+            new Integer(context.getRefireCount())
         };
 
         getLog().info(MessageFormat.format(getTriggerFiredMessage(), args));
@@ -392,41 +390,41 @@ public class LoggingTriggerHistoryPlugin implements SchedulerPlugin,
         } 
         
         Object[] args = {
-            trigger.getKey().getName(), trigger.getKey().getGroup(),
+            trigger.getName(), trigger.getGroup(),
             trigger.getPreviousFireTime(), trigger.getNextFireTime(),
-            new java.util.Date(), trigger.getJobKey().getName(),
-            trigger.getJobKey().getGroup()
+            new java.util.Date(), trigger.getJobName(),
+            trigger.getJobGroup()
         };
 
         getLog().info(MessageFormat.format(getTriggerMisfiredMessage(), args));
     }
 
     public void triggerComplete(Trigger trigger, JobExecutionContext context,
-            CompletedExecutionInstruction triggerInstructionCode) {
+            int triggerInstructionCode) {
         if (!getLog().isInfoEnabled()) {
             return;
         } 
         
         String instrCode = "UNKNOWN";
-        if (triggerInstructionCode == CompletedExecutionInstruction.DELETE_TRIGGER) {
+        if (triggerInstructionCode == Trigger.INSTRUCTION_DELETE_TRIGGER) {
             instrCode = "DELETE TRIGGER";
-        } else if (triggerInstructionCode == CompletedExecutionInstruction.NOOP) {
+        } else if (triggerInstructionCode == Trigger.INSTRUCTION_NOOP) {
             instrCode = "DO NOTHING";
-        } else if (triggerInstructionCode == CompletedExecutionInstruction.RE_EXECUTE_JOB) {
+        } else if (triggerInstructionCode == Trigger.INSTRUCTION_RE_EXECUTE_JOB) {
             instrCode = "RE-EXECUTE JOB";
-        } else if (triggerInstructionCode == CompletedExecutionInstruction.SET_ALL_JOB_TRIGGERS_COMPLETE) {
+        } else if (triggerInstructionCode == Trigger.INSTRUCTION_SET_ALL_JOB_TRIGGERS_COMPLETE) {
             instrCode = "SET ALL OF JOB'S TRIGGERS COMPLETE";
-        } else if (triggerInstructionCode == CompletedExecutionInstruction.SET_TRIGGER_COMPLETE) {
+        } else if (triggerInstructionCode == Trigger.INSTRUCTION_SET_TRIGGER_COMPLETE) {
             instrCode = "SET THIS TRIGGER COMPLETE";
         }
 
         Object[] args = {
-            trigger.getKey().getName(), trigger.getKey().getGroup(),
+            trigger.getName(), trigger.getGroup(),
             trigger.getPreviousFireTime(), trigger.getNextFireTime(),
-            new java.util.Date(), context.getJobDetail().getKey().getName(),
-            context.getJobDetail().getKey().getGroup(),
-            Integer.valueOf(context.getRefireCount()),
-            triggerInstructionCode.toString(), instrCode
+            new java.util.Date(), context.getJobDetail().getName(),
+            context.getJobDetail().getGroup(),
+            new Integer(context.getRefireCount()),
+            new Integer(triggerInstructionCode), instrCode
         };
 
         getLog().info(MessageFormat.format(getTriggerCompleteMessage(), args));

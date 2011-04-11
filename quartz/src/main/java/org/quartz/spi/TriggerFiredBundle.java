@@ -21,6 +21,7 @@ import java.util.Date;
 
 import org.quartz.Calendar;
 import org.quartz.JobDetail;
+import org.quartz.Trigger;
 
 /**
  * <p>
@@ -44,7 +45,7 @@ public class TriggerFiredBundle implements java.io.Serializable {
 
     private JobDetail job;
 
-    private OperableTrigger trigger;
+    private Trigger trigger;
 
     private Calendar cal;
 
@@ -66,7 +67,7 @@ public class TriggerFiredBundle implements java.io.Serializable {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    public TriggerFiredBundle(JobDetail job, OperableTrigger trigger, Calendar cal,
+    public TriggerFiredBundle(JobDetail job, Trigger trigger, Calendar cal,
             boolean jobIsRecovering, Date fireTime, Date scheduledFireTime,
             Date prevFireTime, Date nextFireTime) {
         this.job = job;
@@ -91,7 +92,7 @@ public class TriggerFiredBundle implements java.io.Serializable {
         return job;
     }
 
-    public OperableTrigger getTrigger() {
+    public Trigger getTrigger() {
         return trigger;
     }
 

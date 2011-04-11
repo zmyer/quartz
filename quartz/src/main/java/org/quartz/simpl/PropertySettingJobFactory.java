@@ -27,7 +27,6 @@ import java.util.Map;
 
 import org.quartz.Job;
 import org.quartz.JobDataMap;
-import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.spi.TriggerFiredBundle;
 
@@ -51,10 +50,9 @@ public class PropertySettingJobFactory extends SimpleJobFactory {
     private boolean warnIfNotFound = true;
     private boolean throwIfNotFound = false;
     
-    @Override
-    public Job newJob(TriggerFiredBundle bundle, Scheduler scheduler) throws SchedulerException {
+    public Job newJob(TriggerFiredBundle bundle) throws SchedulerException {
 
-        Job job = super.newJob(bundle, scheduler);
+        Job job = super.newJob(bundle);
         
         JobDataMap jobDataMap = new JobDataMap();
         jobDataMap.putAll(bundle.getJobDetail().getJobDataMap());
@@ -113,43 +111,43 @@ public class PropertySettingJobFactory extends SimpleJobFactory {
 
                     if (paramType.equals(int.class)) {
                         if (o instanceof String) {                            
-                            parm = Integer.valueOf((String)o);
+                            parm = new Integer((String)o);
                         } else if (o instanceof Integer) {
                             parm = o;
                         }
                     } else if (paramType.equals(long.class)) {
                         if (o instanceof String) {
-                            parm = Long.valueOf((String)o);
+                            parm = new Long((String)o);
                         } else if (o instanceof Long) {
                             parm = o;
                         }
                     } else if (paramType.equals(float.class)) {
                         if (o instanceof String) {
-                            parm = Float.valueOf((String)o);
+                            parm = new Float((String)o);
                         } else if (o instanceof Float) {
                             parm = o;
                         }
                     } else if (paramType.equals(double.class)) {
                         if (o instanceof String) {
-                            parm = Double.valueOf((String)o);
+                            parm = new Double((String)o);
                         } else if (o instanceof Double) {
                             parm = o;
                         }
                     } else if (paramType.equals(boolean.class)) {
                         if (o instanceof String) {
-                            parm = Boolean.valueOf((String)o);
+                            parm = new Boolean((String)o);
                         } else if (o instanceof Boolean) {
                             parm = o;
                         }
                     } else if (paramType.equals(byte.class)) {
                         if (o instanceof String) {
-                            parm = Byte.valueOf((String)o);
+                            parm = new Byte((String)o);
                         } else if (o instanceof Byte) {
                             parm = o;
                         }
                     } else if (paramType.equals(short.class)) {
                         if (o instanceof String) {
-                            parm = Short.valueOf((String)o);
+                            parm = new Short((String)o);
                         } else if (o instanceof Short) {
                             parm = o;
                         }
@@ -157,7 +155,7 @@ public class PropertySettingJobFactory extends SimpleJobFactory {
                         if (o instanceof String) {
                             String str = (String)o;
                             if (str.length() == 1) {
-                                parm = Character.valueOf(str.charAt(0));
+                                parm = new Character(str.charAt(0));
                             }
                         } else if (o instanceof Character) {
                             parm = o;

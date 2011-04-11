@@ -17,7 +17,6 @@
 package org.quartz.spi;
 
 import org.quartz.Job;
-import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 
 /**
@@ -57,10 +56,9 @@ public interface JobFactory {
      * @param bundle
      *            The TriggerFiredBundle from which the <code>JobDetail</code>
      *            and other info relating to the trigger firing can be obtained.
-     * @param scheduler a handle to the scheduler that is about to execute the job.
      * @throws SchedulerException if there is a problem instantiating the Job.
      * @return the newly instantiated Job
      */
-    Job newJob(TriggerFiredBundle bundle, Scheduler scheduler) throws SchedulerException;
+    Job newJob(TriggerFiredBundle bundle) throws SchedulerException;
 
 }

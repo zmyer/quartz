@@ -24,17 +24,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.quartz.Calendar;
-import org.quartz.Job;
+import org.quartz.CronTrigger;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
-import org.quartz.JobKey;
-import org.quartz.JobPersistenceException;
+import org.quartz.SimpleTrigger;
 import org.quartz.Trigger;
-import org.quartz.TriggerKey;
-import org.quartz.impl.matchers.GroupMatcher;
 import org.quartz.spi.ClassLoadHelper;
-import org.quartz.spi.OperableTrigger;
 import org.quartz.utils.Key;
+import org.quartz.utils.TriggerStatus;
 
 /**
  * <p>
@@ -66,8 +63,6 @@ public interface DriverDelegate {
      * 
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
-    
-    void initialize(String initString) throws NoSuchDelegateException;
 
     //---------------------------------------------------------------------------
     // startup / recovery
@@ -103,7 +98,7 @@ public interface DriverDelegate {
      * @return an array of <code>{@link
      * org.quartz.utils.Key}</code> objects
      */
-    List<TriggerKey> selectMisfiredTriggers(Connection conn, long ts)
+    Key[] selectMisfiredTriggers(Connection conn, long ts)
         throws SQLException;
 
     /**
@@ -117,7 +112,7 @@ public interface DriverDelegate {
      * @return an array of <code>{@link
      * org.quartz.utils.Key}</code> objects
      */
-    List<TriggerKey> selectMisfiredTriggersInState(Connection conn, String state,
+    Key[] selectMisfiredTriggersInState(Connection conn, String state,
         long ts) throws SQLException;
     
     /**
@@ -135,19 +130,19 @@ public interface DriverDelegate {
      * @return Whether there are more misfired triggers left to find beyond
      *         the given count.
      */
-    boolean hasMisfiredTriggersInState(Connection conn, String state1, 
-        long ts, int count, List<TriggerKey> resultList) throws SQLException;
+    boolean selectMisfiredTriggersInStates(Connection conn, String state1, String state2,
+        long ts, int count, List resultList) throws SQLException;
     
     /**
      * <p>
-     * Get the number of triggers in the given state that have
+     * Get the number of triggers in the given states that have
      * misfired - according to the given timestamp.
      * </p>
      * 
      * @param conn the DB Connection
      */
-    int countMisfiredTriggersInState(
-        Connection conn, String state1, long ts) throws SQLException;
+    int countMisfiredTriggersInStates(
+        Connection conn, String state1, String state2, long ts) throws SQLException;
 
     /**
      * <p>
@@ -160,7 +155,7 @@ public interface DriverDelegate {
      * @return an array of <code>{@link
      * org.quartz.utils.Key}</code> objects
      */
-    List<TriggerKey> selectMisfiredTriggersInGroupInState(Connection conn,
+    Key[] selectMisfiredTriggersInGroupInState(Connection conn,
         String groupName, String state, long ts) throws SQLException;
     
 
@@ -185,7 +180,7 @@ public interface DriverDelegate {
      *          the DB Connection
      * @return an array of <code>{@link org.quartz.Trigger}</code> objects
      */
-    List<OperableTrigger> selectTriggersForRecoveringJobs(Connection conn)
+    Trigger[] selectTriggersForRecoveringJobs(Connection conn)
         throws SQLException, IOException, ClassNotFoundException;
 
     /**
@@ -210,6 +205,41 @@ public interface DriverDelegate {
      */
     int deleteFiredTriggers(Connection conn, String instanceId)
         throws SQLException;
+
+    /**
+     * <p>
+     * Delete all volatile fired triggers.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @return the number of rows deleted
+     */
+    int deleteVolatileFiredTriggers(Connection conn) throws SQLException;
+
+    /**
+     * <p>
+     * Get the names of all of the triggers that are volatile.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @return an array of <code>{@link
+     * org.quartz.utils.Key}</code> objects
+     */
+    Key[] selectVolatileTriggers(Connection conn) throws SQLException;
+
+    /**
+     * <p>
+     * Get the names of all of the jobs that are volatile.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @return an array of <code>{@link
+     * org.quartz.utils.Key}</code> objects
+     */
+    Key[] selectVolatileJobs(Connection conn) throws SQLException;
 
     //---------------------------------------------------------------------------
     // jobs
@@ -254,11 +284,31 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param jobName
+     *          the job name
+     * @param groupName
+     *          the job group
      * @return an array of <code>{@link
      * org.quartz.utils.Key}</code> objects
      */
-    List<TriggerKey> selectTriggerKeysForJob(Connection conn, JobKey jobKey) throws SQLException;
+    Key[] selectTriggerNamesForJob(Connection conn, String jobName,
+        String groupName) throws SQLException;
+
+    /**
+     * <p>
+     * Delete all job listeners for the given job.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param jobName
+     *          the name of the job
+     * @param groupName
+     *          the group containing the job
+     * @return the number of rows deleted
+     */
+    int deleteJobListeners(Connection conn, String jobName,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -267,23 +317,30 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param jobName
+     *          the name of the job
+     * @param groupName
+     *          the group containing the job
      * @return the number of rows deleted
      */
-    int deleteJobDetail(Connection conn, JobKey jobKey)
+    int deleteJobDetail(Connection conn, String jobName, String groupName)
         throws SQLException;
 
     /**
      * <p>
-     * Check whether or not the given job disallows concurrent execution.
+     * Check whether or not the given job is stateful.
      * </p>
      * 
      * @param conn
      *          the DB Connection
-     * 
-     * @return true if the job exists and disallows concurrent execution, false otherwise
+     * @param jobName
+     *          the name of the job
+     * @param groupName
+     *          the group containing the job
+     * @return true if the job exists and is stateful, false otherwise
      */
-    boolean isJobNonConcurrent(Connection conn, JobKey jobKey) throws SQLException;
+    boolean isJobStateful(Connection conn, String jobName,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -292,10 +349,13 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param jobName
+     *          the name of the job
+     * @param groupName
+     *          the group containing the job
      * @return true if the job exists, false otherwise
      */
-    boolean jobExists(Connection conn, JobKey jobKey)
+    boolean jobExists(Connection conn, String jobName, String groupName)
         throws SQLException;
 
     /**
@@ -316,12 +376,47 @@ public interface DriverDelegate {
 
     /**
      * <p>
+     * Associate a listener with a job.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param job
+     *          the job to associate with the listener
+     * @param listener
+     *          the listener to insert
+     * @return the number of rows inserted
+     */
+    int insertJobListener(Connection conn, JobDetail job, String listener)
+        throws SQLException;
+
+    /**
+     * <p>
+     * Get all of the listeners for a given job.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param jobName
+     *          the job name whose listeners are wanted
+     * @param groupName
+     *          the group containing the job
+     * @return array of <code>String</code> listener names
+     */
+    String[] selectJobListeners(Connection conn, String jobName,
+        String groupName) throws SQLException;
+
+    /**
+     * <p>
      * Select the JobDetail object for a given job name / group name.
      * </p>
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param jobName
+     *          the job name whose listeners are wanted
+     * @param groupName
+     *          the group containing the job
      * @return the populated JobDetail object
      * @throws ClassNotFoundException
      *           if a class found during deserialization cannot be found or if
@@ -329,8 +424,8 @@ public interface DriverDelegate {
      * @throws IOException
      *           if deserialization causes an error
      */
-    JobDetail selectJobDetail(Connection conn, JobKey jobKey,
-        ClassLoadHelper loadHelper)
+    JobDetail selectJobDetail(Connection conn, String jobName,
+        String groupName, ClassLoadHelper loadHelper)
         throws ClassNotFoundException, IOException, SQLException;
 
     /**
@@ -353,7 +448,7 @@ public interface DriverDelegate {
      *          the DB Connection
      * @return an array of <code>String</code> group names
      */
-    List<String> selectJobGroups(Connection conn) throws SQLException;
+    String[] selectJobGroups(Connection conn) throws SQLException;
 
     /**
      * <p>
@@ -362,11 +457,11 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * @param matcher
-     *          the group matcher to evaluate against the known jobs
+     * @param groupName
+     *          the group containing the jobs
      * @return an array of <code>String</code> job names
      */
-    Set<JobKey> selectJobsInGroup(Connection conn, GroupMatcher<JobKey> matcher)
+    String[] selectJobsInGroup(Connection conn, String groupName)
         throws SQLException;
 
     //---------------------------------------------------------------------------
@@ -386,8 +481,50 @@ public interface DriverDelegate {
      *          the state that the trigger should be stored in
      * @return the number of rows inserted
      */
-    int insertTrigger(Connection conn, OperableTrigger trigger, String state,
+    int insertTrigger(Connection conn, Trigger trigger, String state,
         JobDetail jobDetail) throws SQLException, IOException;
+
+    /**
+     * <p>
+     * Insert the simple trigger data.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param trigger
+     *          the trigger to insert
+     * @return the number of rows inserted
+     */
+    int insertSimpleTrigger(Connection conn, SimpleTrigger trigger)
+        throws SQLException;
+
+    /**
+     * <p>
+     * Insert the blob trigger data.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param trigger
+     *          the trigger to insert
+     * @return the number of rows inserted
+     */
+    int insertBlobTrigger(Connection conn, Trigger trigger)
+        throws SQLException, IOException;
+
+    /**
+     * <p>
+     * Insert the cron trigger data.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param trigger
+     *          the trigger to insert
+     * @return the number of rows inserted
+     */
+    int insertCronTrigger(Connection conn, CronTrigger trigger)
+        throws SQLException;
 
     /**
      * <p>
@@ -402,8 +539,50 @@ public interface DriverDelegate {
      *          the state that the trigger should be stored in
      * @return the number of rows updated
      */
-    int updateTrigger(Connection conn, OperableTrigger trigger, String state,
+    int updateTrigger(Connection conn, Trigger trigger, String state,
         JobDetail jobDetail) throws SQLException, IOException;
+
+    /**
+     * <p>
+     * Update the simple trigger data.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param trigger
+     *          the trigger to insert
+     * @return the number of rows updated
+     */
+    int updateSimpleTrigger(Connection conn, SimpleTrigger trigger)
+        throws SQLException;
+
+    /**
+     * <p>
+     * Update the cron trigger data.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param trigger
+     *          the trigger to insert
+     * @return the number of rows updated
+     */
+    int updateCronTrigger(Connection conn, CronTrigger trigger)
+        throws SQLException;
+
+    /**
+     * <p>
+     * Update the blob trigger data.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param trigger
+     *          the trigger to insert
+     * @return the number of rows updated
+     */
+    int updateBlobTrigger(Connection conn, Trigger trigger)
+        throws SQLException, IOException;
 
     /**
      * <p>
@@ -412,10 +591,14 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @return the number of rows updated
      */
-    boolean triggerExists(Connection conn, TriggerKey triggerKey) throws SQLException;
+    boolean triggerExists(Connection conn, String triggerName,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -424,13 +607,16 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @param state
      *          the new state for the trigger
      * @return the number of rows updated
      */
-    int updateTriggerState(Connection conn, TriggerKey triggerKey,
-        String state) throws SQLException;
+    int updateTriggerState(Connection conn, String triggerName,
+        String groupName, String state) throws SQLException;
 
     /**
      * <p>
@@ -440,7 +626,10 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB connection
-     * 
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @param newState
      *          the new state for the trigger
      * @param oldState
@@ -449,7 +638,8 @@ public interface DriverDelegate {
      * @throws SQLException
      */
     int updateTriggerStateFromOtherState(Connection conn,
-        TriggerKey triggerKey, String newState, String oldState) throws SQLException;
+        String triggerName, String groupName, String newState,
+        String oldState) throws SQLException;
 
     /**
      * <p>
@@ -459,7 +649,10 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB connection
-     * 
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @param newState
      *          the new state for the trigger
      * @param oldState1
@@ -472,8 +665,31 @@ public interface DriverDelegate {
      * @throws SQLException
      */
     int updateTriggerStateFromOtherStates(Connection conn,
-        TriggerKey triggerKey, String newState, String oldState1,
-        String oldState2, String oldState3)
+        String triggerName, String groupName, String newState,
+        String oldState1, String oldState2, String oldState3)
+        throws SQLException;
+
+    /**
+     * <p>
+     * Update the all triggers to the given new state, if they are in one of
+     * the given old states AND its next fire time is before the given time.
+     * </p>
+     * 
+     * @param conn
+     *          the DB connection
+     * @param newState
+     *          the new state for the trigger
+     * @param oldState1
+     *          one of the old state the trigger must be in
+     * @param oldState2
+     *          one of the old state the trigger must be in
+     * @param time
+     *          the time before which the trigger's next fire time must be
+     * @return int the number of rows updated
+     * @throws SQLException
+     */
+    int updateTriggerStateFromOtherStatesBeforeTime(Connection conn,
+        String newState, String oldState1, String oldState2, long time)
         throws SQLException;
 
     /**
@@ -484,8 +700,8 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB connection
-     * @param matcher
-     *          the group matcher to evaluate against the known triggers
+     * @param groupName
+     *          the group containing the trigger
      * @param newState
      *          the new state for the trigger
      * @param oldState1
@@ -498,7 +714,7 @@ public interface DriverDelegate {
      * @throws SQLException
      */
     int updateTriggerGroupStateFromOtherStates(Connection conn,
-        GroupMatcher<TriggerKey> matcher, String newState, String oldState1,
+        String groupName, String newState, String oldState1,
         String oldState2, String oldState3) throws SQLException;
 
     /**
@@ -509,8 +725,8 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB connection
-     * @param matcher
-     *          the matcher to evaluate against the known triggers
+     * @param groupName
+     *          the group containing the triggers
      * @param newState
      *          the new state for the trigger group
      * @param oldState
@@ -519,7 +735,7 @@ public interface DriverDelegate {
      * @throws SQLException
      */
     int updateTriggerGroupStateFromOtherState(Connection conn,
-        GroupMatcher<TriggerKey> matcher, String newState, String oldState)
+        String groupName, String newState, String oldState)
         throws SQLException;
 
     /**
@@ -529,13 +745,16 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param jobName
+     *          the name of the job
+     * @param groupName
+     *          the group containing the job
      * @param state
      *          the new state for the triggers
      * @return the number of rows updated
      */
-    int updateTriggerStatesForJob(Connection conn, JobKey jobKey,
-        String state) throws SQLException;
+    int updateTriggerStatesForJob(Connection conn, String jobName,
+        String groupName, String state) throws SQLException;
 
     /**
      * <p>
@@ -545,7 +764,10 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param jobName
+     *          the name of the job
+     * @param groupName
+     *          the group containing the job
      * @param state
      *          the new state for the triggers
      * @param oldState
@@ -553,8 +775,104 @@ public interface DriverDelegate {
      * @return the number of rows updated
      */
     int updateTriggerStatesForJobFromOtherState(Connection conn,
-        JobKey jobKey, String state, String oldState)
+        String jobName, String groupName, String state, String oldState)
         throws SQLException;
+
+    /**
+     * <p>
+     * Delete all of the listeners associated with a given trigger.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param triggerName
+     *          the name of the trigger whose listeners will be deleted
+     * @param groupName
+     *          the name of the group containing the trigger
+     * @return the number of rows deleted
+     */
+    int deleteTriggerListeners(Connection conn, String triggerName,
+        String groupName) throws SQLException;
+
+    /**
+     * <p>
+     * Associate a listener with the given trigger.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param trigger
+     *          the trigger
+     * @param listener
+     *          the name of the listener to associate with the trigger
+     * @return the number of rows inserted
+     */
+    int insertTriggerListener(Connection conn, Trigger trigger,
+        String listener) throws SQLException;
+
+    /**
+     * <p>
+     * Select the listeners associated with a given trigger.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
+     * @return array of <code>String</code> trigger listener names
+     */
+    String[] selectTriggerListeners(Connection conn, String triggerName,
+        String groupName) throws SQLException;
+
+    /**
+     * <p>
+     * Delete the simple trigger data for a trigger.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
+     * @return the number of rows deleted
+     */
+    int deleteSimpleTrigger(Connection conn, String triggerName,
+        String groupName) throws SQLException;
+
+    /**
+     * <p>
+     * Delete the BLOB trigger data for a trigger.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
+     * @return the number of rows deleted
+     */
+    int deleteBlobTrigger(Connection conn, String triggerName,
+        String groupName) throws SQLException;
+
+    /**
+     * <p>
+     * Delete the cron trigger data for a trigger.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
+     * @return the number of rows deleted
+     */
+    int deleteCronTrigger(Connection conn, String triggerName,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -563,10 +881,14 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @return the number of rows deleted
      */
-    int deleteTrigger(Connection conn, TriggerKey triggerKey) throws SQLException;
+    int deleteTrigger(Connection conn, String triggerName,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -575,9 +897,14 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
+     * @param jobName
+     *          the name of the job
+     * @param groupName
+     *          the group containing the job
      * @return the number of triggers for the given job
      */
-    int selectNumTriggersForJob(Connection conn, JobKey jobKey) throws SQLException;
+    int selectNumTriggersForJob(Connection conn, String jobName,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -586,13 +913,31 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @return the <code>{@link org.quartz.JobDetail}</code> object
      *         associated with the given trigger
      */
-    JobDetail selectJobForTrigger(Connection conn, ClassLoadHelper loadHelper,
-        TriggerKey triggerKey) 
+    JobDetail selectJobForTrigger(Connection conn, String triggerName,
+        String groupName, ClassLoadHelper loadHelper) 
         throws ClassNotFoundException, SQLException;
+
+    /**
+     * <p>
+     * Select the stateful jobs which are referenced by triggers in the given
+     * trigger group.
+     * </p>
+     * 
+     * @param conn
+     *          the DB Connection
+     * @param groupName
+     *          the trigger group
+     * @return a List of Keys to jobs.
+     */
+    List selectStatefulJobsOfTriggerGroup(Connection conn,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -601,14 +946,17 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param jobName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @return an array of <code>(@link org.quartz.Trigger)</code> objects
      *         associated with a given job.
      * @throws SQLException
-     * @throws JobPersistenceException 
      */
-    List<OperableTrigger> selectTriggersForJob(Connection conn, JobKey jobKey) throws SQLException, ClassNotFoundException,
-        IOException, JobPersistenceException;
+    Trigger[] selectTriggersForJob(Connection conn, String jobName,
+        String groupName) throws SQLException, ClassNotFoundException,
+        IOException;
 
     /**
      * <p>
@@ -622,10 +970,9 @@ public interface DriverDelegate {
      * @return an array of <code>(@link org.quartz.Trigger)</code> objects
      *         associated with the given calendar.
      * @throws SQLException
-     * @throws JobPersistenceException 
      */
-    List<OperableTrigger> selectTriggersForCalendar(Connection conn, String calName)
-        throws SQLException, ClassNotFoundException, IOException, JobPersistenceException;
+    Trigger[] selectTriggersForCalendar(Connection conn, String calName)
+        throws SQLException, ClassNotFoundException, IOException;
     /**
      * <p>
      * Select a trigger.
@@ -633,12 +980,15 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @return the <code>{@link org.quartz.Trigger}</code> object
-     * @throws JobPersistenceException 
      */
-    OperableTrigger selectTrigger(Connection conn, TriggerKey triggerKey) throws SQLException, ClassNotFoundException,
-        IOException, JobPersistenceException;
+    Trigger selectTrigger(Connection conn, String triggerName,
+        String groupName) throws SQLException, ClassNotFoundException,
+        IOException;
 
     /**
      * <p>
@@ -665,10 +1015,14 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @return the <code>{@link org.quartz.Trigger}</code> object
      */
-    String selectTriggerState(Connection conn, TriggerKey triggerKey) throws SQLException;
+    String selectTriggerState(Connection conn, String triggerName,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -677,11 +1031,14 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
+     * @param triggerName
+     *          the name of the trigger
+     * @param groupName
+     *          the group containing the trigger
      * @return a <code>TriggerStatus</code> object, or null
      */
     TriggerStatus selectTriggerStatus(Connection conn,
-        TriggerKey triggerKey) throws SQLException;
+        String triggerName, String groupName) throws SQLException;
 
     /**
      * <p>
@@ -703,9 +1060,7 @@ public interface DriverDelegate {
      *          the DB Connection
      * @return an array of <code>String</code> group names
      */
-    List<String> selectTriggerGroups(Connection conn) throws SQLException;
-
-    List<String> selectTriggerGroups(Connection conn, GroupMatcher<TriggerKey> matcher) throws SQLException;
+    String[] selectTriggerGroups(Connection conn) throws SQLException;
 
     /**
      * <p>
@@ -714,11 +1069,11 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * @param matcher
-     *          to evaluate against known triggers
-     * @return a Set of <code>TriggerKey</code>s
+     * @param groupName
+     *          the group containing the triggers
+     * @return an array of <code>String</code> trigger names
      */
-    Set<TriggerKey> selectTriggersInGroup(Connection conn, GroupMatcher<TriggerKey> matcher)
+    String[] selectTriggersInGroup(Connection conn, String groupName)
         throws SQLException;
 
     /**
@@ -732,7 +1087,7 @@ public interface DriverDelegate {
      *          the state the triggers must be in
      * @return an array of trigger <code>Key</code> s
      */
-    List<TriggerKey> selectTriggersInState(Connection conn, String state)
+    Key[] selectTriggersInState(Connection conn, String state)
         throws SQLException;
 
     int insertPausedTriggerGroup(Connection conn, String groupName)
@@ -741,16 +1096,13 @@ public interface DriverDelegate {
     int deletePausedTriggerGroup(Connection conn, String groupName)
         throws SQLException;
 
-    int deletePausedTriggerGroup(Connection conn, GroupMatcher<TriggerKey> matcher)
-        throws SQLException;
-
     int deleteAllPausedTriggerGroups(Connection conn)
         throws SQLException;
 
     boolean isTriggerGroupPaused(Connection conn, String groupName)
         throws SQLException;
 
-    Set<String> selectPausedTriggerGroups(Connection conn)
+    Set selectPausedTriggerGroups(Connection conn)
         throws SQLException;
     
     boolean isExistingTriggerGroup(Connection conn, String groupName)
@@ -877,7 +1229,7 @@ public interface DriverDelegate {
      *          the DB Connection
      * @return an array of <code>String</code> calendar names
      */
-    List<String> selectCalendars(Connection conn) throws SQLException;
+    String[] selectCalendars(Connection conn) throws SQLException;
 
     //---------------------------------------------------------------------------
     // trigger firing
@@ -927,7 +1279,7 @@ public interface DriverDelegate {
      *          
      * @return A (never null, possibly empty) list of the identifiers (Key objects) of the next triggers to be fired.
      */
-    List<TriggerKey> selectTriggerToAcquire(Connection conn, long noLaterThan, long noEarlierThan)
+    List selectTriggerToAcquire(Connection conn, long noLaterThan, long noEarlierThan)
         throws SQLException;
 
     /**
@@ -943,24 +1295,7 @@ public interface DriverDelegate {
      *          the state that the trigger should be stored in
      * @return the number of rows inserted
      */
-    int insertFiredTrigger(Connection conn, OperableTrigger trigger,
-        String state, JobDetail jobDetail) throws SQLException;
-
-    /**
-     * <p>
-     * Update a fired trigger record.  Will update the fields  
-     * "firing instance", "fire time", and "state".
-     * </p>
-     * 
-     * @param conn
-     *          the DB Connection
-     * @param trigger
-     *          the trigger
-     * @param state
-     *          the state that the trigger should be stored in
-     * @return the number of rows inserted
-     */
-    int updateFiredTrigger(Connection conn, OperableTrigger trigger,
+    int insertFiredTrigger(Connection conn, Trigger trigger,
         String state, JobDetail jobDetail) throws SQLException;
 
     /**
@@ -971,7 +1306,8 @@ public interface DriverDelegate {
      * 
      * @return a List of FiredTriggerRecord objects.
      */
-    List<FiredTriggerRecord> selectFiredTriggerRecords(Connection conn, String triggerName, String groupName) throws SQLException;
+    List selectFiredTriggerRecords(Connection conn, String triggerName,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -981,7 +1317,8 @@ public interface DriverDelegate {
      * 
      * @return a List of FiredTriggerRecord objects.
      */
-    List<FiredTriggerRecord> selectFiredTriggerRecordsByJob(Connection conn, String jobName, String groupName) throws SQLException;
+    List selectFiredTriggerRecordsByJob(Connection conn, String jobName,
+        String groupName) throws SQLException;
 
     /**
      * <p>
@@ -991,7 +1328,7 @@ public interface DriverDelegate {
      * 
      * @return a List of FiredTriggerRecord objects.
      */
-    List<FiredTriggerRecord> selectInstancesFiredTriggerRecords(Connection conn,
+    List selectInstancesFiredTriggerRecords(Connection conn,
         String instanceName) throws SQLException;
 
     
@@ -1007,7 +1344,7 @@ public interface DriverDelegate {
      * 
      * @return a Set of String objects.
      */
-    Set<String> selectFiredTriggerInstanceNames(Connection conn) 
+    Set selectFiredTriggerInstanceNames(Connection conn) 
         throws SQLException;
     
     /**
@@ -1031,10 +1368,10 @@ public interface DriverDelegate {
      * 
      * @param conn
      *          the DB Connection
-     * 
      * @return the number instances of the identified job currently executing.
      */
-    int selectJobExecutionCount(Connection conn, JobKey jobKey) throws SQLException;
+    int selectJobExecutionCount(Connection conn, String jobName,
+        String jobGroup) throws SQLException;
 
     /**
      * <p>
@@ -1087,18 +1424,9 @@ public interface DriverDelegate {
      * @param conn
      *          the DB Connection
      */
-    List<SchedulerStateRecord> selectSchedulerStateRecords(Connection conn, String instanceId)
+    List selectSchedulerStateRecords(Connection conn, String instanceId)
         throws SQLException;
 
-    /**
-     * Clear (delete!) all scheduling data - all {@link Job}s, {@link Trigger}s
-     * {@link Calendar}s.
-     * 
-     * @throws JobPersistenceException
-     */
-    void clearData(Connection conn)
-        throws SQLException;
-    
 }
 
 // EOF

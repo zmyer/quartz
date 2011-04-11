@@ -41,6 +41,10 @@ public class ShutdownHookPlugin implements SchedulerPlugin {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
+    private String name;
+
+    private Scheduler scheduler;
+
     private boolean cleanShutdown = true;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -115,6 +119,8 @@ public class ShutdownHookPlugin implements SchedulerPlugin {
      */
     public void initialize(String name, final Scheduler scheduler)
         throws SchedulerException {
+        this.name = name;
+        this.scheduler = scheduler;
 
         getLog().info("Registering Quartz shutdown hook.");
 

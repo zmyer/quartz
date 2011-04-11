@@ -88,7 +88,9 @@ public final class SendDestinationMessageJob implements Job {
         MessageProducer producer = null;
 
         try {
-            final JobDataMap dataMap = jobCtx.getMergedJobDataMap();
+            final JobDetail detail = jobCtx.getJobDetail();
+
+            final JobDataMap dataMap = detail.getJobDataMap();
 
             final Context namingCtx = JmsHelper.getInitialContext(dataMap);
 

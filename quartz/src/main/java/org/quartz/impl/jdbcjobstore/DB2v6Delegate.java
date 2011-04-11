@@ -22,8 +22,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.quartz.JobKey;
-import org.quartz.spi.ClassLoadHelper;
 import org.slf4j.Logger;
 
 /**
@@ -35,36 +33,30 @@ import org.slf4j.Logger;
  */
 public class DB2v6Delegate extends StdJDBCDelegate {
     public static final String SELECT_NUM_JOBS = "SELECT COUNT(*) FROM "
-            + TABLE_PREFIX_SUBST + TABLE_JOB_DETAILS
-            + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST;
+            + TABLE_PREFIX_SUBST + TABLE_JOB_DETAILS;
 
     public static final String SELECT_NUM_TRIGGERS_FOR_JOB = "SELECT COUNT(*) FROM "
             + TABLE_PREFIX_SUBST
             + TABLE_TRIGGERS
             + " WHERE "
-            + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-            + " AND " 
             + COL_JOB_NAME
             + " = ? AND " + COL_JOB_GROUP + " = ?";
 
     public static final String SELECT_NUM_TRIGGERS = "SELECT COUNT(*) FROM "
-            + TABLE_PREFIX_SUBST + TABLE_TRIGGERS
-            + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST;
+            + TABLE_PREFIX_SUBST + TABLE_TRIGGERS;
 
     public static final String SELECT_NUM_CALENDARS = "SELECT COUNT(*) FROM "
-            + TABLE_PREFIX_SUBST + TABLE_CALENDARS
-            + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST;
+            + TABLE_PREFIX_SUBST + TABLE_CALENDARS;
 
-    public DB2v6Delegate(Logger logger, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper) {
-        super(logger, tablePrefix, schedName, instanceId, classLoadHelper);
+    public DB2v6Delegate(Logger logger, String tablePrefix, String instanceId) {
+        super(logger, tablePrefix, instanceId);
     }
 
-    public DB2v6Delegate(Logger logger, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper,
+    public DB2v6Delegate(Logger logger, String tablePrefix, String instanceId,
             Boolean useProperties) {
-        super(logger, tablePrefix, schedName, instanceId, classLoadHelper, useProperties);
+        super(logger, tablePrefix, instanceId, useProperties);
     }
 
-    @Override           
     public int selectNumJobs(Connection conn) throws SQLException {
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -85,15 +77,15 @@ public class DB2v6Delegate extends StdJDBCDelegate {
         }
     }
 
-    @Override           
-    public int selectNumTriggersForJob(Connection conn, JobKey jobKey) throws SQLException {
+    public int selectNumTriggersForJob(Connection conn, String jobName,
+            String groupName) throws SQLException {
         PreparedStatement ps = null;
         ResultSet rs = null;
 
         try {
             ps = conn.prepareStatement(rtp(SELECT_NUM_TRIGGERS_FOR_JOB));
-            ps.setString(1, jobKey.getName());
-            ps.setString(2, jobKey.getGroup());
+            ps.setString(1, jobName);
+            ps.setString(2, groupName);
             rs = ps.executeQuery();
 
             if (rs.next()) {
@@ -107,7 +99,6 @@ public class DB2v6Delegate extends StdJDBCDelegate {
         }
     }
 
-    @Override
     public int selectNumTriggers(Connection conn) throws SQLException {
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -128,7 +119,6 @@ public class DB2v6Delegate extends StdJDBCDelegate {
         }
     }
 
-    @Override           
     public int selectNumCalendars(Connection conn) throws SQLException {
         PreparedStatement ps = null;
         ResultSet rs = null;

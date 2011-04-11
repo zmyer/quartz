@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.quartz.TriggerListener;
 import org.quartz.Trigger;
 import org.quartz.JobExecutionContext;
-import org.quartz.Trigger.CompletedExecutionInstruction;
 
 /**
  * A helpful abstract base class for implementors of 
@@ -63,6 +62,6 @@ public abstract class TriggerListenerSupport implements TriggerListener {
     public void triggerComplete(
         Trigger trigger,
         JobExecutionContext context,
-        CompletedExecutionInstruction triggerInstructionCode) {
+        int triggerInstructionCode) {
     }
 }

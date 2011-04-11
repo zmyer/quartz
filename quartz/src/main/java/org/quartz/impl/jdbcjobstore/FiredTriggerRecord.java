@@ -17,8 +17,6 @@
 
 package org.quartz.impl.jdbcjobstore;
 
-import org.quartz.JobKey;
-import org.quartz.TriggerKey;
 import org.quartz.utils.Key;
 
 /**
@@ -44,13 +42,15 @@ public class FiredTriggerRecord implements java.io.Serializable {
 
     private String schedulerInstanceId;
 
-    private TriggerKey triggerKey;
+    private Key triggerKey;
 
     private String fireInstanceState;
 
-    private JobKey jobKey;
+    private boolean triggerIsVolatile;
 
-    private boolean jobDisallowsConcurrentExecution;
+    private Key jobKey;
+
+    private boolean jobIsStateful;
 
     private boolean jobRequestsRecovery;
 
@@ -72,11 +72,11 @@ public class FiredTriggerRecord implements java.io.Serializable {
         return fireTimestamp;
     }
 
-    public boolean isJobDisallowsConcurrentExecution() {
-        return jobDisallowsConcurrentExecution;
+    public boolean isJobIsStateful() {
+        return jobIsStateful;
     }
 
-    public JobKey getJobKey() {
+    public Key getJobKey() {
         return jobKey;
     }
 
@@ -84,7 +84,7 @@ public class FiredTriggerRecord implements java.io.Serializable {
         return schedulerInstanceId;
     }
 
-    public TriggerKey getTriggerKey() {
+    public Key getTriggerKey() {
         return triggerKey;
     }
 
@@ -100,11 +100,11 @@ public class FiredTriggerRecord implements java.io.Serializable {
         fireTimestamp = l;
     }
 
-    public void setJobDisallowsConcurrentExecution(boolean b) {
-        jobDisallowsConcurrentExecution = b;
+    public void setJobIsStateful(boolean b) {
+        jobIsStateful = b;
     }
 
-    public void setJobKey(JobKey key) {
+    public void setJobKey(Key key) {
         jobKey = key;
     }
 
@@ -112,7 +112,7 @@ public class FiredTriggerRecord implements java.io.Serializable {
         schedulerInstanceId = string;
     }
 
-    public void setTriggerKey(TriggerKey key) {
+    public void setTriggerKey(Key key) {
         triggerKey = key;
     }
 
@@ -124,8 +124,16 @@ public class FiredTriggerRecord implements java.io.Serializable {
         return jobRequestsRecovery;
     }
 
+    public boolean isTriggerIsVolatile() {
+        return triggerIsVolatile;
+    }
+
     public void setJobRequestsRecovery(boolean b) {
         jobRequestsRecovery = b;
+    }
+
+    public void setTriggerIsVolatile(boolean b) {
+        triggerIsVolatile = b;
     }
 
     public int getPriority() {

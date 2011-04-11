@@ -84,7 +84,8 @@ public class SendQueueMessageJob implements Job {
         QueueSender sender = null;
         InitialContext ctx = null;
         
-        final JobDataMap jobDataMap = context.getMergedJobDataMap();
+        final JobDetail detail = context.getJobDetail();
+        final JobDataMap jobDataMap = detail.getJobDataMap();
         
         try {
             ctx = JmsHelper.getInitialContext(jobDataMap);

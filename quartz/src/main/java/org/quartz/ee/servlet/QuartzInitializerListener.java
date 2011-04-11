@@ -44,10 +44,6 @@ import org.quartz.impl.StdSchedulerFactory;
  *         &lt;param-value&gt;true&lt;/param-value&gt;
  *     &lt;/context-param&gt;
  *     &lt;context-param&gt;
- *         &lt;param-name&gt;quartz:wait-on-shutdown&lt;/param-name&gt;
- *         &lt;param-value&gt;true&lt;/param-value&gt;
- *     &lt;/context-param&gt;
- *     &lt;context-param&gt;
  *         &lt;param-name&gt;quartz:start-on-load&lt;/param-name&gt;
  *         &lt;param-value&gt;true&lt;/param-value&gt;
  *     &lt;/context-param&gt;
@@ -74,15 +70,6 @@ import org.quartz.impl.StdSchedulerFactory;
  * </p>
  *
  * <p>
- * The init parameter 'quartz:wait-on-shutdown' has effect when 
- * 'quartz:shutdown-on-unload' is specified "true", and indicates whether you
- * want scheduler.shutdown(true) called when the listener is unloaded (usually when
- * the application server is being shutdown).  Passing "true" to the shutdown() call
- * causes the scheduler to wait for existing jobs to complete. Possible values are 
- * "true" or "false". The default is "false".
- * </p>
- * 
- * <p>
  * The init parameter 'quartz:start-on-load' can be used to specify whether
  * you want the scheduler.start() method called when the listener is first loaded.
  * If set to false, your application will need to call the start() method before
@@ -104,12 +91,6 @@ import org.quartz.impl.StdSchedulerFactory;
  * </p>
  *
  * <p>
- * The init parameter 'quartz:scheduler-context-servlet-context-key' if set, the 
- * ServletContext will be stored in the SchedulerContext under the given key
- * name (and will therefore be available to jobs during execution). 
- * </p>
- *
- * <p>
  * The init parameter 'quartz:start-delay-seconds' can be used to specify the amount
  * of time to wait after initializing the scheduler before scheduler.start()
  * is called.
@@ -127,7 +108,6 @@ public class QuartzInitializerListener implements ServletContextListener {
     public static final String QUARTZ_FACTORY_KEY = "org.quartz.impl.StdSchedulerFactory.KEY";
 
     private boolean performShutdown = true;
-    private boolean waitOnShutdown = false;
 
     private Scheduler scheduler = null;
 
@@ -155,12 +135,9 @@ public class QuartzInitializerListener implements ServletContextListener {
             String shutdownPref = servletContext.getInitParameter("quartz:shutdown-on-unload");
             if(shutdownPref == null)
                 shutdownPref = servletContext.getInitParameter("shutdown-on-unload");
+
             if (shutdownPref != null) {
                 performShutdown = Boolean.valueOf(shutdownPref).booleanValue();
-            }
-            String shutdownWaitPref = servletContext.getInitParameter("quartz:wait-on-shutdown");
-            if (shutdownPref != null) {
-                waitOnShutdown = Boolean.valueOf(shutdownWaitPref).booleanValue();
             }
 
             // get Properties
@@ -212,7 +189,7 @@ public class QuartzInitializerListener implements ServletContextListener {
             }
 
             String factoryKey = servletContext.getInitParameter("quartz:servlet-context-factory-key");
-            if(factoryKey == null)
+            if(factoryKey != null)
                 factoryKey = servletContext.getInitParameter("servlet-context-factory-key");
             if (factoryKey == null) {
                 factoryKey = QUARTZ_FACTORY_KEY;
@@ -221,16 +198,6 @@ public class QuartzInitializerListener implements ServletContextListener {
             log.info("Storing the Quartz Scheduler Factory in the servlet context at key: "
                     + factoryKey);
             servletContext.setAttribute(factoryKey, factory);
-            
-            
-            String servletCtxtKey = servletContext.getInitParameter("quartz:scheduler-context-servlet-context-key");
-            if(servletCtxtKey == null)
-                servletCtxtKey = servletContext.getInitParameter("scheduler-context-servlet-context-key");
-            if (servletCtxtKey != null) {
-                log.info("Storing the ServletContext in the scheduler context at key: "
-                        + servletCtxtKey);
-                scheduler.getContext().put(servletCtxtKey, servletContext);
-            }
 
         } catch (Exception e) {
             log.error("Quartz Scheduler failed to initialize: " + e.toString());
@@ -246,7 +213,7 @@ public class QuartzInitializerListener implements ServletContextListener {
 
         try {
             if (scheduler != null) {
-                scheduler.shutdown(waitOnShutdown);
+                scheduler.shutdown();
             }
         } catch (Exception e) {
             log.error("Quartz Scheduler failed to shutdown cleanly: " + e.toString());

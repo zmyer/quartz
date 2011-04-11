@@ -17,19 +17,16 @@
 
 package org.quartz.examples.example13;
 
-import static org.quartz.DateBuilder.futureDate;
-import static org.quartz.JobBuilder.newJob;
-import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
-import static org.quartz.TriggerBuilder.newTrigger;
+import java.util.Date;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerFactory;
 import org.quartz.SimpleTrigger;
-import org.quartz.DateBuilder.IntervalUnit;
 import org.quartz.impl.StdSchedulerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Used to test/show the clustering features of JDBCJobStore (JobStoreTX or
@@ -65,18 +62,38 @@ import org.slf4j.LoggerFactory;
  * 
  * <p>
  * <i>Note:</i> Never run clustering on separate machines, unless their
- * clocks are synchronized using some form of time-sync service 
- * (such as an NTP daemon).
+ * clocks are synchronized using some form of time-sync service (daemon).
  * </p>
  * 
- * @see SimpleRecoveryJob
- * @see SimpleRecoveryStatefulJob
+ * @see DumbRecoveryJob
  * 
  * @author James House
  */
 public class ClusterExample {
 
     private static Logger _log = LoggerFactory.getLogger(ClusterExample.class);
+    
+    public void cleanUp(Scheduler inScheduler) throws Exception {
+        _log.warn("***** Deleting existing jobs/triggers *****");
+
+        // unschedule jobs
+        String[] groups = inScheduler.getTriggerGroupNames();
+        for (int i = 0; i < groups.length; i++) {
+            String[] names = inScheduler.getTriggerNames(groups[i]);
+            for (int j = 0; j < names.length; j++) {
+                inScheduler.unscheduleJob(names[j], groups[i]);
+            }
+        }
+
+        // delete jobs
+        groups = inScheduler.getJobGroupNames();
+        for (int i = 0; i < groups.length; i++) {
+            String[] names = inScheduler.getJobNames(groups[i]);
+            for (int j = 0; j < names.length; j++) {
+                inScheduler.deleteJob(names[j], groups[i]);
+            }
+        }
+    }
     
     public void run(boolean inClearJobs, boolean inScheduleJobs) 
         throws Exception {
@@ -86,8 +103,7 @@ public class ClusterExample {
         Scheduler sched = sf.getScheduler();
         
         if (inClearJobs) {
-            _log.warn("***** Deleting existing jobs/triggers *****");
-            sched.clear();
+            cleanUp(sched);
         }
 
         _log.info("------- Initialization Complete -----------");
@@ -100,106 +116,69 @@ public class ClusterExample {
 
             int count = 1;
 
-            JobDetail job = newJob(SimpleRecoveryJob.class) 
-                .withIdentity("job_" + count, schedId) // put triggers in group named after the cluster node instance just to distinguish (in logging) what was scheduled from where
-                .requestRecovery() // ask scheduler to re-execute this job if it was in progress when the scheduler went down...
-                .build();
-
-            
-            SimpleTrigger trigger = newTrigger()
-                .withIdentity("triger_" + count, schedId)
-                .startAt(futureDate(1, IntervalUnit.SECOND))
-                .withSchedule(simpleSchedule()
-                        .withRepeatCount(20)
-                        .withIntervalInSeconds(5))
-                .build();
-                
-
-            _log.info(job.getKey() +
+            JobDetail job = new JobDetail("job_" + count, schedId,
+                    SimpleRecoveryJob.class);
+            // ask scheduler to re-execute this job if it was in progress when
+            // the scheduler went down...
+            job.setRequestsRecovery(true);
+            SimpleTrigger trigger = 
+                new SimpleTrigger("triger_" + count, schedId, 20, 5000L);
+            trigger.setStartTime(new Date(System.currentTimeMillis() + 1000L));
+            _log.info(job.getFullName() +
                     " will run at: " + trigger.getNextFireTime() +  
                     " and repeat: " + trigger.getRepeatCount() + 
                     " times, every " + trigger.getRepeatInterval() / 1000 + " seconds");
             sched.scheduleJob(job, trigger);
 
             count++;
-
-            job = newJob(SimpleRecoveryJob.class) 
-                .withIdentity("job_" + count, schedId) // put triggers in group named after the cluster node instance just to distinguish (in logging) what was scheduled from where
-                .requestRecovery() // ask scheduler to re-execute this job if it was in progress when the scheduler went down...
-                .build();
-
-            trigger = newTrigger()
-                .withIdentity("triger_" + count, schedId)
-                .startAt(futureDate(2, IntervalUnit.SECOND))
-                .withSchedule(simpleSchedule()
-                        .withRepeatCount(20)
-                        .withIntervalInSeconds(5))
-                .build();
-
-            _log.info(job.getKey() +
+            job = new JobDetail("job_" + count, schedId, 
+                    SimpleRecoveryJob.class);
+            // ask scheduler to re-execute this job if it was in progress when
+            // the scheduler went down...
+            job.setRequestsRecovery(true);
+            trigger = new SimpleTrigger("trig_" + count, schedId, 20, 5000L);
+            trigger.setStartTime(new Date(System.currentTimeMillis() + 2000L));
+            _log.info(job.getFullName() +
                     " will run at: " + trigger.getNextFireTime() +  
                     " and repeat: " + trigger.getRepeatCount() + 
                     " times, every " + trigger.getRepeatInterval() / 1000 + " seconds");
             sched.scheduleJob(job, trigger);
 
             count++;
-            
-            job = newJob(SimpleRecoveryStatefulJob.class) 
-                .withIdentity("job_" + count, schedId) // put triggers in group named after the cluster node instance just to distinguish (in logging) what was scheduled from where
-                .requestRecovery() // ask scheduler to re-execute this job if it was in progress when the scheduler went down...
-                .build();
-            
-            trigger = newTrigger()
-                .withIdentity("triger_" + count, schedId)
-                .startAt(futureDate(1, IntervalUnit.SECOND))
-                .withSchedule(simpleSchedule()
-                        .withRepeatCount(20)
-                        .withIntervalInSeconds(3))
-                .build();
-            
-            _log.info(job.getKey() +
+            job = new JobDetail("job_" + count, schedId,
+                    SimpleRecoveryStatefulJob.class);
+            // ask scheduler to re-execute this job if it was in progress when
+            // the scheduler went down...
+            job.setRequestsRecovery(true);
+            trigger = new SimpleTrigger("trig_" + count, schedId, 20, 3000L);
+            trigger.setStartTime(new Date(System.currentTimeMillis() + 1000L));
+            _log.info(job.getFullName() +
                     " will run at: " + trigger.getNextFireTime() +  
                     " and repeat: " + trigger.getRepeatCount() + 
                     " times, every " + trigger.getRepeatInterval() / 1000 + " seconds");
             sched.scheduleJob(job, trigger);
 
             count++;
-
-            job = newJob(SimpleRecoveryJob.class) 
-                .withIdentity("job_" + count, schedId) // put triggers in group named after the cluster node instance just to distinguish (in logging) what was scheduled from where
-                .requestRecovery() // ask scheduler to re-execute this job if it was in progress when the scheduler went down...
-                .build();
-
-            trigger = newTrigger()
-                .withIdentity("triger_" + count, schedId)
-                .startAt(futureDate(1, IntervalUnit.SECOND))
-                .withSchedule(simpleSchedule()
-                        .withRepeatCount(20)
-                        .withIntervalInSeconds(4))
-                .build();
-            
-            _log.info(job.getKey() + " will run at: "
+            job = new JobDetail("job_" + count, schedId, SimpleRecoveryJob.class);
+            // ask scheduler to re-execute this job if it was in progress when
+            // the scheduler went down...
+            job.setRequestsRecovery(true);
+            trigger = new SimpleTrigger("trig_" + count, schedId, 20, 4000L);
+            trigger.setStartTime(new Date(System.currentTimeMillis() + 1000L));
+            _log.info(job.getFullName() + " will run at: "
                     + trigger.getNextFireTime() + " & repeat: "
                     + trigger.getRepeatCount() + "/"
                     + trigger.getRepeatInterval());
             sched.scheduleJob(job, trigger);
 
             count++;
-            
-            job = newJob(SimpleRecoveryJob.class) 
-                .withIdentity("job_" + count, schedId) // put triggers in group named after the cluster node instance just to distinguish (in logging) what was scheduled from where
-                .requestRecovery() // ask scheduler to re-execute this job if it was in progress when the scheduler went down...
-                .build();
-
-            trigger = newTrigger()
-                .withIdentity("triger_" + count, schedId)
-                .startAt(futureDate(1, IntervalUnit.SECOND))
-                .withSchedule(simpleSchedule()
-                        .withRepeatCount(20)
-                        .withIntervalInMilliseconds(4500L))
-                .build();
-            
-            _log.info(job.getKey() + " will run at: "
+            job = new JobDetail("job_" + count, schedId, SimpleRecoveryJob.class);
+            // ask scheduler to re-execute this job if it was in progress when
+            // the scheduler went down...
+            job.setRequestsRecovery(true);
+            trigger = new SimpleTrigger("trig_" + count, schedId, 20, 4500L);
+            trigger.setStartTime(new Date(System.currentTimeMillis() + 1000L));
+            _log.info(job.getFullName() + " will run at: "
                     + trigger.getNextFireTime() + " & repeat: "
                     + trigger.getRepeatCount() + "/"
                     + trigger.getRepeatInterval());

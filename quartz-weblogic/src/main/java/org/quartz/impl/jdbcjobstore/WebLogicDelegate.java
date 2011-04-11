@@ -24,7 +24,6 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.quartz.spi.ClassLoadHelper;
 import org.slf4j.Logger;
 
 /**
@@ -46,8 +45,8 @@ public class WebLogicDelegate extends StdJDBCDelegate {
      * @param tablePrefix
      *          the prefix of all table names
      */
-    public WebLogicDelegate(Logger log, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper) {
-        super(log, tablePrefix, schedName, instanceId, classLoadHelper);
+    public WebLogicDelegate(Logger log, String tablePrefix, String instanceId) {
+        super(log, tablePrefix, instanceId);
     }
 
     /**
@@ -62,9 +61,9 @@ public class WebLogicDelegate extends StdJDBCDelegate {
      * @param useProperties
      *          use java.util.Properties for storage
      */
-    public WebLogicDelegate(Logger log, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper,
+    public WebLogicDelegate(Logger log, String tablePrefix, String instanceId,
             Boolean useProperties) {
-        super(log, tablePrefix, schedName, instanceId, classLoadHelper, useProperties);
+        super(log, tablePrefix, instanceId, useProperties);
     }
 
     //---------------------------------------------------------------------------
@@ -114,7 +113,7 @@ public class WebLogicDelegate extends StdJDBCDelegate {
         return obj;
     }
 
-    protected Object getJobDataFromBlob(ResultSet rs, String colName)
+    protected Object getJobDetailFromBlob(ResultSet rs, String colName)
         throws ClassNotFoundException, IOException, SQLException {
         
         if (canUseProperties()) {

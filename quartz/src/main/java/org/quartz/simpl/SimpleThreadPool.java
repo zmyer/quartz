@@ -72,9 +72,9 @@ public class SimpleThreadPool implements ThreadPool {
 
     private final Object nextRunnableLock = new Object();
 
-    private List<WorkerThread> workers;
-    private LinkedList<WorkerThread> availWorkers = new LinkedList<WorkerThread>();
-    private LinkedList<WorkerThread> busyWorkers = new LinkedList<WorkerThread>();
+    private List workers;
+    private LinkedList availWorkers = new LinkedList();
+    private LinkedList busyWorkers = new LinkedList();
 
     private String threadNamePrefix;
 
@@ -281,8 +281,8 @@ public class SimpleThreadPool implements ThreadPool {
         }
     }
 
-    protected List<WorkerThread> createWorkerThreads(int count) {
-        workers = new LinkedList<WorkerThread>();
+    protected List createWorkerThreads(int count) {
+        workers = new LinkedList();
         for (int i = 1; i<= count; ++i) {
             WorkerThread wt = new WorkerThread(this, threadGroup,
                 getThreadNamePrefix() + "-" + i,
@@ -542,11 +542,11 @@ public class SimpleThreadPool implements ThreadPool {
                         while (runnable == null && run) {
                             this.wait(500);
                         }
+                    }
 
-                        if (runnable != null) {
-                            ran = true;
-                            runnable.run();
-                        }
+                    if (runnable != null) {
+                        ran = true;
+                        runnable.run();
                     }
                 } catch (InterruptedException unblock) {
                     // do nothing (loop will terminate if shutdown() was called

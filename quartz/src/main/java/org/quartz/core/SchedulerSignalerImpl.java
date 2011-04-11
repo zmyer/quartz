@@ -20,7 +20,6 @@ package org.quartz.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.quartz.JobKey;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.spi.SchedulerSignaler;
@@ -88,7 +87,4 @@ public class SchedulerSignalerImpl implements SchedulerSignaler {
         schedThread.signalSchedulingChange(candidateNewNextFireTime);
     }
 
-    public void notifySchedulerListenersJobDeleted(JobKey jobKey) {
-        sched.notifySchedulerListenersJobDeleted(jobKey);
-    }
 }

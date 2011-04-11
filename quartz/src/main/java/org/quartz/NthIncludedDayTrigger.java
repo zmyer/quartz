@@ -21,8 +21,6 @@ import java.text.NumberFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
-import org.quartz.impl.triggers.AbstractTrigger;
-
 /**
  * A trigger which fires on the N<SUP>th</SUP> day of every interval type 
  * ({@link #INTERVAL_TYPE_WEEKLY}, {@link #INTERVAL_TYPE_MONTHLY} or 
@@ -67,7 +65,7 @@ import org.quartz.impl.triggers.AbstractTrigger;
  * 
  * @author  Aaron Craven
  */
-public class NthIncludedDayTrigger extends AbstractTrigger {
+public class NthIncludedDayTrigger extends Trigger {
 
     // TODO: jhouse:  Aaron's usage of Calendar in this class is non-standard, 
     // and may be problematic if the calendar instance is mutated.
@@ -667,6 +665,38 @@ public class NthIncludedDayTrigger extends AbstractTrigger {
     }
 
     /**
+    * Called after the <CODE>Scheduler</CODE> has executed the 
+    * <code>JobDetail</CODE> associated with the <CODE>Trigger</CODE> in order
+    * to get the final instruction code from the trigger.
+    * 
+    * @param jobCtx the <CODE>JobExecutionContext</CODE> that was used by the
+    *               <CODE>Job</CODE>'s <CODE>execute()</CODE> method.
+    * @param result the <CODE>JobExecutionException</CODE> thrown by the
+    *               <CODE>Job</CODE>, if any (may be <CODE>null</CODE>)
+    * @return one of the Trigger.INSTRUCTION_XXX constants.
+    */
+    public int executionComplete(JobExecutionContext jobCtx,
+        JobExecutionException result) {
+        if (result != null && result.refireImmediately()) {
+            return INSTRUCTION_RE_EXECUTE_JOB;
+        }
+
+        if (result != null && result.unscheduleFiringTrigger()) {
+            return INSTRUCTION_SET_TRIGGER_COMPLETE;
+        }
+    
+        if (result != null && result.unscheduleAllTriggers()) {
+            return INSTRUCTION_SET_ALL_JOB_TRIGGERS_COMPLETE;
+        }
+    
+        if (!mayFireAgain()) {
+            return INSTRUCTION_DELETE_TRIGGER;
+        }
+    
+        return INSTRUCTION_NOOP;
+    }
+
+    /**
     * Used by the <CODE>Scheduler</CODE> to determine whether or not it is
     * possible for this <CODE>Trigger</CODE> to fire again.
     * <P>
@@ -1012,24 +1042,5 @@ public class NthIncludedDayTrigger extends AbstractTrigger {
         } else {
             return null;
         }
-    }
-    
-    /**
-     * Get a {@link ScheduleBuilder} that is configured to produce a 
-     * schedule identical to this trigger's schedule.
-     * 
-     * @see #getTriggerBuilder()
-     */
-    public ScheduleBuilder getScheduleBuilder() {
-        
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    public void setNextFireTime(Date nextFireTime) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void setPreviousFireTime(Date previousFireTime) {
-        throw new UnsupportedOperationException();
     }
 }

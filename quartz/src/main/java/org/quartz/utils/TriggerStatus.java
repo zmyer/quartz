@@ -15,13 +15,9 @@
  * 
  */
 
-package org.quartz.impl.jdbcjobstore;
+package org.quartz.utils;
 
 import java.util.Date;
-
-import org.quartz.JobKey;
-import org.quartz.TriggerKey;
-
 
 /**
  * <p>
@@ -30,7 +26,7 @@ import org.quartz.TriggerKey;
  * 
  * @author James House
  */
-public class TriggerStatus {
+public class TriggerStatus extends Pair {
 
     // TODO: Repackage under spi or root pkg ?, put status constants here.
     /*
@@ -41,13 +37,9 @@ public class TriggerStatus {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    private TriggerKey key;
+    private Key key;
 
-    private JobKey jobKey;
-
-    private String status;
-    
-    private Date nextFireTime;
+    private Key jobKey;
 
     /*
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -66,8 +58,9 @@ public class TriggerStatus {
      *          the next time the trigger will fire
      */
     public TriggerStatus(String status, Date nextFireTime) {
-        this.status = status;
-        this.nextFireTime = nextFireTime;
+        super();
+        super.setFirst(status);
+        super.setSecond(nextFireTime);
     }
 
     /*
@@ -78,19 +71,19 @@ public class TriggerStatus {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    public JobKey getJobKey() {
+    public Key getJobKey() {
         return jobKey;
     }
 
-    public void setJobKey(JobKey jobKey) {
+    public void setJobKey(Key jobKey) {
         this.jobKey = jobKey;
     }
 
-    public TriggerKey getKey() {
+    public Key getKey() {
         return key;
     }
 
-    public void setKey(TriggerKey key) {
+    public void setKey(Key key) {
         this.key = key;
     }
 
@@ -102,7 +95,7 @@ public class TriggerStatus {
      * @return the name
      */
     public String getStatus() {
-        return status;
+        return (String) getFirst();
     }
 
     /**
@@ -113,7 +106,7 @@ public class TriggerStatus {
      * @return the group
      */
     public Date getNextFireTime() {
-        return nextFireTime;
+        return (Date) getSecond();
     }
 
     /**

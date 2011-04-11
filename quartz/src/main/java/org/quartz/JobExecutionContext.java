@@ -1,5 +1,6 @@
-/*
- * All content copyright Terracotta, Inc., unless otherwise indicated. All rights reserved.
+
+/* 
+ * Copyright 2001-2009 Terracotta, Inc. 
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not 
  * use this file except in compliance with the License. You may obtain a copy 
@@ -18,12 +19,17 @@
 package org.quartz;
 
 import java.util.Date;
+import java.util.HashMap;
+
+import org.quartz.spi.TriggerFiredBundle;
 
 /**
+ * <p>
  * A context bundle containing handles to various environment information, that
  * is given to a <code>{@link org.quartz.JobDetail}</code> instance as it is
  * executed, and to a <code>{@link Trigger}</code> instance after the
  * execution completes.
+ * </p>
  * 
  * <p>
  * The <code>JobDataMap</code> found on this object (via the 
@@ -49,9 +55,9 @@ import java.util.Date;
  * to the job instance that is running).
  * </p>
  * 
+ * @see #getJobDetail()
  * @see #getScheduler()
  * @see #getMergedJobDataMap()
- * @see #getJobDetail()
  * 
  * @see Job
  * @see Trigger
@@ -59,7 +65,84 @@ import java.util.Date;
  * 
  * @author James House
  */
-public interface JobExecutionContext {
+public class JobExecutionContext implements java.io.Serializable {
+
+    /*
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * 
+     * Data members.
+     * 
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     */
+
+    private transient Scheduler scheduler;
+
+    private Trigger trigger;
+
+    private JobDetail jobDetail;
+    
+    private JobDataMap jobDataMap;
+
+    private transient Job job;
+    
+    private Calendar calendar;
+
+    private boolean recovering = false;
+
+    private int numRefires = 0;
+
+    private Date fireTime;
+
+    private Date scheduledFireTime;
+
+    private Date prevFireTime;
+
+    private Date nextFireTime;
+    
+    private long jobRunTime = -1;
+    
+    private Object result;
+    
+    private HashMap data = new HashMap();
+
+    /*
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * 
+     * Constructors.
+     * 
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     */
+
+    /**
+     * <p>
+     * Create a JobExcecutionContext with the given context data.
+     * </p>
+     */
+    public JobExecutionContext(Scheduler scheduler,
+            TriggerFiredBundle firedBundle, Job job) {
+        this.scheduler = scheduler;
+        this.trigger = firedBundle.getTrigger();
+        this.calendar = firedBundle.getCalendar();
+        this.jobDetail = firedBundle.getJobDetail();
+        this.job = job;
+        this.recovering = firedBundle.isRecovering();
+        this.fireTime = firedBundle.getFireTime();
+        this.scheduledFireTime = firedBundle.getScheduledFireTime();
+        this.prevFireTime = firedBundle.getPrevFireTime();
+        this.nextFireTime = firedBundle.getNextFireTime();
+        
+        this.jobDataMap = new JobDataMap();
+        this.jobDataMap.putAll(jobDetail.getJobDataMap());
+        this.jobDataMap.putAll(trigger.getJobDataMap());
+    }
+
+    /*
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * 
+     * Interface.
+     * 
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     */
 
     /**
      * <p>
@@ -67,7 +150,9 @@ public interface JobExecutionContext {
      * <code>Job</code>.
      * </p>
      */
-    public Scheduler getScheduler();
+    public Scheduler getScheduler() {
+        return scheduler;
+    }
 
     /**
      * <p>
@@ -75,7 +160,9 @@ public interface JobExecutionContext {
      * <code>Job</code>.
      * </p>
      */
-    public Trigger getTrigger();
+    public Trigger getTrigger() {
+        return trigger;
+    }
 
     /**
      * <p>
@@ -83,7 +170,9 @@ public interface JobExecutionContext {
      * instance that fired the <code>Job</code>.
      * </p>
      */
-    public Calendar getCalendar();
+    public Calendar getCalendar() {
+        return calendar;
+    }
 
     /**
      * <p>
@@ -91,9 +180,17 @@ public interface JobExecutionContext {
      * situation, this method will return <code>true</code>.
      * </p>
      */
-    public boolean isRecovering();
+    public boolean isRecovering() {
+        return recovering;
+    }
 
-    public int getRefireCount();
+    public void incrementRefireCount() {
+        numRefires++;
+    }
+
+    public int getRefireCount() {
+        return numRefires;
+    }
 
     /**
      * <p>
@@ -120,14 +217,18 @@ public interface JobExecutionContext {
      * </p>
      * 
      */
-    public JobDataMap getMergedJobDataMap();
+    public JobDataMap getMergedJobDataMap() {
+        return jobDataMap;
+    }
 
     /**
      * <p>
      * Get the <code>JobDetail</code> associated with the <code>Job</code>.
      * </p>
      */
-    public JobDetail getJobDetail();
+    public JobDetail getJobDetail() {
+        return jobDetail;
+    }
 
     /**
      * <p>
@@ -140,7 +241,9 @@ public interface JobExecutionContext {
      * interfaces.
      * </p>
      */
-    public Job getJobInstance();
+    public Job getJobInstance() {
+        return job;
+    }
 
     /**
      * The actual time the trigger fired. For instance the scheduled time may
@@ -150,7 +253,9 @@ public interface JobExecutionContext {
      * @return Returns the fireTime.
      * @see #getScheduledFireTime()
      */
-    public Date getFireTime();
+    public Date getFireTime() {
+        return fireTime;
+    }
 
     /**
      * The scheduled time the trigger fired for. For instance the scheduled
@@ -160,11 +265,27 @@ public interface JobExecutionContext {
      * @return Returns the scheduledFireTime.
      * @see #getFireTime()
      */
-    public Date getScheduledFireTime();
+    public Date getScheduledFireTime() {
+        return scheduledFireTime;
+    }
 
-    public Date getPreviousFireTime();
+    public Date getPreviousFireTime() {
+        return prevFireTime;
+    }
 
-    public Date getNextFireTime();
+    public Date getNextFireTime() {
+        return nextFireTime;
+    }
+
+    public String toString() {
+        return "JobExecutionContext:" + " trigger: '"
+                + getTrigger().getFullName() + " job: "
+                + getJobDetail().getFullName() + " fireTime: '" + getFireTime()
+                + " scheduledFireTime: " + getScheduledFireTime()
+                + " previousFireTime: '" + getPreviousFireTime()
+                + " nextFireTime: " + getNextFireTime() + " isRecovering: "
+                + isRecovering() + " refireCount: " + getRefireCount();
+    }
 
     /**
      * Returns the result (if any) that the <code>Job</code> set before its 
@@ -180,8 +301,10 @@ public interface JobExecutionContext {
      * 
      * @return Returns the result.
      */
-    public Object getResult();
-
+    public Object getResult() {
+        return result;
+    }
+    
     /**
      * Set the result (if any) of the <code>Job</code>'s execution (the type of 
      * object set as the result is entirely up to the particular job).
@@ -193,8 +316,10 @@ public interface JobExecutionContext {
      * execution.
      * </p> 
      */
-    public void setResult(Object result);
-
+    public void setResult(Object result) {
+        this.result = result;
+    }
+    
     /**
      * The amount of time the job ran for (in milliseconds).  The returned 
      * value will be -1 until the job has actually completed (or thrown an 
@@ -203,7 +328,16 @@ public interface JobExecutionContext {
      * 
      * @return Returns the jobRunTime.
      */
-    public long getJobRunTime();
+    public long getJobRunTime() {
+        return jobRunTime;
+    }
+    
+    /**
+     * @param jobRunTime The jobRunTime to set.
+     */
+    public void setJobRunTime(long jobRunTime) {
+        this.jobRunTime = jobRunTime;
+    }
 
     /**
      * Put the specified value into the context's data map with the given key.
@@ -216,13 +350,16 @@ public interface JobExecutionContext {
      * @param key
      * @param value
      */
-    public void put(Object key, Object value);
-
+    public void put(Object key, Object value) {
+        data.put(key, value);
+    }
+    
     /**
      * Get the value with the given key from the context's data map.
      * 
      * @param key
      */
-    public Object get(Object key);
-
+    public Object get(Object key) {
+        return data.get(key);
+    }
 }

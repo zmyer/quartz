@@ -24,7 +24,6 @@ import java.io.ObjectInputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.quartz.spi.ClassLoadHelper;
 import org.slf4j.Logger;
 
 /**
@@ -45,8 +44,8 @@ public class PostgreSQLDelegate extends StdJDBCDelegate {
      * @param tablePrefix
      *          the prefix of all table names
      */
-    public PostgreSQLDelegate(Logger log, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper) {
-        super(log, tablePrefix, schedName, instanceId, classLoadHelper);
+    public PostgreSQLDelegate(Logger log, String tablePrefix, String instanceId) {
+        super(log, tablePrefix, instanceId);
     }
 
     /**
@@ -61,9 +60,9 @@ public class PostgreSQLDelegate extends StdJDBCDelegate {
      * @param useProperties
      *          use java.util.Properties for storage
      */
-    public PostgreSQLDelegate(Logger log, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper,
+    public PostgreSQLDelegate(Logger log, String tablePrefix, String instanceId,
             Boolean useProperties) {
-        super(log, tablePrefix, schedName, instanceId, classLoadHelper, useProperties);
+        super(log, tablePrefix, instanceId, useProperties);
     }
 
     //---------------------------------------------------------------------------
@@ -87,7 +86,6 @@ public class PostgreSQLDelegate extends StdJDBCDelegate {
      * @throws IOException
      *           if deserialization causes an error
      */
-    @Override           
     protected Object getObjectFromBlob(ResultSet rs, String colName)
         throws ClassNotFoundException, IOException, SQLException {
         InputStream binaryInput = null;
@@ -110,8 +108,7 @@ public class PostgreSQLDelegate extends StdJDBCDelegate {
         return obj;
     }
 
-    @Override           
-    protected Object getJobDataFromBlob(ResultSet rs, String colName)
+    protected Object getJobDetailFromBlob(ResultSet rs, String colName)
         throws ClassNotFoundException, IOException, SQLException {
         if (canUseProperties()) {
             InputStream binaryInput = null;

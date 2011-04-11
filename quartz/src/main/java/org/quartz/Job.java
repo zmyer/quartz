@@ -35,10 +35,7 @@ package org.quartz;
  * </p>
  * 
  * @see JobDetail
- * @see JobBuilder
- * @see ExecuteInJTATransaction
- * @see DisallowConcurrentExecution
- * @see PersistJobDataAfterExecution
+ * @see StatefulJob
  * @see Trigger
  * @see Scheduler
  * 

@@ -8,7 +8,6 @@ import org.quartz.JobExecutionException;
 import org.quartz.JobListener;
 import org.quartz.SchedulerListener;
 import org.quartz.Trigger;
-import org.quartz.impl.matchers.EverythingMatcher;
 import org.quartz.listeners.SchedulerListenerSupport;
 import org.quartz.utils.counter.CounterConfig;
 import org.quartz.utils.counter.CounterManager;
@@ -42,8 +41,8 @@ public class SampledStatisticsImpl extends SchedulerListenerSupport implements S
         jobsExecutingCount = createSampledCounter(DEFAULT_SAMPLED_COUNTER_CONFIG);
         jobsCompletedCount = createSampledCounter(DEFAULT_SAMPLED_COUNTER_CONFIG);
         
-        scheduler.addInternalSchedulerListener(this);
-        scheduler.addInternalJobListener(this);
+        scheduler.addSchedulerListener(this);
+        scheduler.addGlobalJobListener(this);
 	}
 	
 	public void shutdown() {
