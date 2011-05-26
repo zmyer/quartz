@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.management.ObjectName;
+
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
@@ -465,7 +467,7 @@ public class DirectSchedulerFactory implements SchedulerFactory {
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         threadPool.initialize();
-        
+
         QuartzSchedulerResources qrs = new QuartzSchedulerResources();
 
         qrs.setName(schedulerName);

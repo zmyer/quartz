@@ -679,22 +679,14 @@ public abstract class JobStoreSupport implements JobStore, Constants {
      * </p>
      */
     public void shutdown() {
-        if (misfireHandler != null) {
-            misfireHandler.shutdown();
-            try {
-                misfireHandler.join();
-            } catch (InterruptedException ignoreInterruptionOfThisThread) {
-            }
-        }
-
         if (clusterManagementThread != null) {
             clusterManagementThread.shutdown();
-            try {
-                clusterManagementThread.join();
-            } catch (InterruptedException ignoreInterruptionOfThisThread) {
-            }
         }
 
+        if (misfireHandler != null) {
+            misfireHandler.shutdown();
+        }
+        
         try {
             DBConnectionManager.getInstance().shutdown(getDataSource());
         } catch (SQLException sqle) {
@@ -3769,7 +3761,7 @@ public abstract class JobStoreSupport implements JobStore, Constants {
 
     class ClusterManager extends Thread {
 
-        private volatile boolean shutdown = false;
+        private boolean shutdown = false;
 
         private int numFails = 0;
         
@@ -3845,7 +3837,7 @@ public abstract class JobStoreSupport implements JobStore, Constants {
 
     class MisfireHandler extends Thread {
 
-        private volatile boolean shutdown = false;
+        private boolean shutdown = false;
 
         private int numFails = 0;
         
