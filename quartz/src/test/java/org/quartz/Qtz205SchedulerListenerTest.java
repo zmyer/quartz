@@ -16,14 +16,11 @@
 package org.quartz;
 
 import static org.quartz.JobBuilder.newJob;
-import static org.quartz.SimpleScheduleBuilder.*;
+import static org.quartz.SimpleScheduleBuilder.repeatSecondlyForTotalCount;
 import static org.quartz.TriggerBuilder.newTrigger;
-
-import java.util.Properties;
-
 import junit.framework.Assert;
+import junit.framework.TestCase;
 
-import org.junit.Test;
 import org.quartz.Trigger.CompletedExecutionInstruction;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
@@ -35,11 +32,11 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Zemian Deng <saltnlight5@gmail.com>
  */
-public class Qtz205SchedulerListenerTest  {
+public class Qtz205SchedulerListenerTest extends TestCase {
 	private static Logger logger = LoggerFactory.getLogger(Qtz205SchedulerListenerTest.class);
+	private static int jobExecutionCount = 0;	
 	
 	public static class Qtz205Job implements Job {
-		private static volatile int jobExecutionCount = 0;	
 		public void execute(JobExecutionContext context) throws JobExecutionException {
 			jobExecutionCount++;
 			logger.info("Job executed. jobExecutionCount=" + jobExecutionCount);
@@ -48,7 +45,7 @@ public class Qtz205SchedulerListenerTest  {
 	}
 	
 	public static class Qtz205TriggerListener implements TriggerListener {
-		private volatile int fireCount;
+		private int fireCount;
 		public int getFireCount() {
 			return fireCount;
 		}
@@ -63,7 +60,6 @@ public class Qtz205SchedulerListenerTest  {
 
 		public boolean vetoJobExecution(Trigger trigger, JobExecutionContext context) {
 			if (fireCount >= 3) {
-				logger.info("Job execution vetoed.");
 				return true;
 			} else {
 				return false;
@@ -147,30 +143,24 @@ public class Qtz205SchedulerListenerTest  {
 	}
 	
 	/** QTZ-205 */
-	@Test
 	public void testTriggerFinalized() throws Exception {
 		Qtz205TriggerListener triggerListener = new Qtz205TriggerListener();
 		Qtz205ScheListener schedulerListener = new Qtz205ScheListener();
-		Properties props = new Properties();
-		props.setProperty("org.quartz.scheduler.idleWaitTime", "1500");
-		props.setProperty("org.quartz.threadPool.threadCount", "2");
-		Scheduler scheduler = new StdSchedulerFactory(props).getScheduler();
+		Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
 		scheduler.getListenerManager().addSchedulerListener(schedulerListener);
 		scheduler.getListenerManager().addTriggerListener(triggerListener);
-		scheduler.start();
-		scheduler.standby();
 		
 		JobDetail job = newJob(Qtz205Job.class).withIdentity("test").build();
 		Trigger trigger = newTrigger().withIdentity("test")
-				.withSchedule(simpleSchedule().withIntervalInMilliseconds(250).withRepeatCount(2))
+				.withSchedule(repeatSecondlyForTotalCount(3))
 				.build();
 		scheduler.scheduleJob(job, trigger);
 		scheduler.start();
-		Thread.sleep(5000);
+		Thread.sleep(4000);
 		
 		scheduler.shutdown(true);
 
-		Assert.assertEquals(2, Qtz205Job.jobExecutionCount);
+		Assert.assertEquals(2, jobExecutionCount);
 		Assert.assertEquals(3, triggerListener.getFireCount());
 		Assert.assertEquals(1, schedulerListener.getTriggerFinalizedCount());
 	}
