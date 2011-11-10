@@ -242,11 +242,11 @@ public class QuartzScheduler implements RemotableQuartzScheduler {
         
         getLog().info("Quartz Scheduler v." + getVersion() + " created.");
     }
-    
+
     public long getDbRetryInterval() {
 		return dbRetryInterval;
 	}
-
+    
     public void initialize() throws SchedulerException {
         
         try {
