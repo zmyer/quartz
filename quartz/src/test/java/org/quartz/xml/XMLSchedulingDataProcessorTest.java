@@ -11,16 +11,14 @@ import java.io.InputStream;
 
 import junit.framework.TestCase;
 
-import org.quartz.Job;
 import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
 import org.quartz.ObjectAlreadyExistsException;
 import org.quartz.Scheduler;
 import org.quartz.Trigger;
 import org.quartz.impl.StdSchedulerFactory;
 import org.quartz.impl.matchers.GroupMatcher;
+import org.quartz.jobs.NoOpJob;
 import org.quartz.simpl.CascadingClassLoadHelper;
 import org.quartz.spi.ClassLoadHelper;
 
@@ -50,7 +48,7 @@ public class XMLSchedulingDataProcessorTest extends TestCase {
 			scheduler = factory.getScheduler();
 			
 			// Let's setup a fixture job data that we know test is not going modify it.
-			JobDetail job = newJob(MyJob.class).withIdentity("job1").usingJobData("foo", "dont_chg_me").build();
+			JobDetail job = newJob(NoOpJob.class).withIdentity("job1").usingJobData("foo", "dont_chg_me").build();
 			Trigger trigger = newTrigger().withIdentity("job1").withSchedule(repeatHourlyForever()).build();
 			scheduler.scheduleJob(job, trigger);			
 			
@@ -113,11 +111,11 @@ public class XMLSchedulingDataProcessorTest extends TestCase {
 			scheduler = factory.getScheduler();
 			
 			// Setup existing job with same names as in xml data.
-			JobDetail job = newJob(MyJob.class).withIdentity("job1").build();
+			JobDetail job = newJob(NoOpJob.class).withIdentity("job1").build();
 			Trigger trigger = newTrigger().withIdentity("job1").withSchedule(repeatHourlyForever()).build();
 			scheduler.scheduleJob(job, trigger);
 			
-			job = newJob(MyJob.class).withIdentity("job2").build();
+			job = newJob(NoOpJob.class).withIdentity("job2").build();
 			trigger = newTrigger().withIdentity("job2").withSchedule(repeatHourlyForever()).build();
 			scheduler.scheduleJob(job, trigger);
 			
@@ -152,9 +150,4 @@ public class XMLSchedulingDataProcessorTest extends TestCase {
 		}
 	}
 	
-	/** An empty job for testing purpose. */
-	public static class MyJob implements Job {
-		public void execute(JobExecutionContext context) throws JobExecutionException {
-		}		
-	}
 }

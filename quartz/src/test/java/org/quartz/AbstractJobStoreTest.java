@@ -34,6 +34,7 @@ import org.quartz.impl.JobDetailImpl;
 import org.quartz.impl.jdbcjobstore.JobStoreSupport;
 import org.quartz.impl.matchers.GroupMatcher;
 import org.quartz.impl.triggers.SimpleTriggerImpl;
+import org.quartz.jobs.NoOpJob;
 import org.quartz.simpl.CascadingClassLoadHelper;
 import org.quartz.spi.ClassLoadHelper;
 import org.quartz.spi.JobStore;
@@ -58,7 +59,7 @@ public abstract class AbstractJobStoreTest extends TestCase {
         this.fJobStore.initialize(loadHelper, this.fSignaler);
         this.fJobStore.schedulerStarted();
 
-        this.fJobDetail = new JobDetailImpl("job1", "jobGroup1", MyJob.class);
+        this.fJobDetail = new JobDetailImpl("job1", "jobGroup1", NoOpJob.class);
         this.fJobDetail.setDurability(true);
         this.fJobStore.storeJob(this.fJobDetail, false);
     }
@@ -234,7 +235,7 @@ public abstract class AbstractJobStoreTest extends TestCase {
 
         String jobName = "StoreTriggerReplacesTrigger";
         String jobGroup = "StoreTriggerReplacesTriggerGroup";
-        JobDetailImpl detail = new JobDetailImpl(jobName, jobGroup, MyJob.class);
+        JobDetailImpl detail = new JobDetailImpl(jobName, jobGroup, NoOpJob.class);
         fJobStore.storeJob(detail, false);
  
         String trName = "StoreTriggerReplacesTrigger";
@@ -269,12 +270,12 @@ public abstract class AbstractJobStoreTest extends TestCase {
     	final String jobName2 = "PauseJobGroupPausesNewJob2";
     	final String jobGroup = "PauseJobGroupPausesNewJobGroup";
     
-    	JobDetailImpl detail = new JobDetailImpl(jobName1, jobGroup, MyJob.class);
+    	JobDetailImpl detail = new JobDetailImpl(jobName1, jobGroup, NoOpJob.class);
     	detail.setDurability(true);
     	fJobStore.storeJob(detail, false);
     	fJobStore.pauseJobs(GroupMatcher.jobGroupEquals(jobGroup));
     
-    	detail = new JobDetailImpl(jobName2, jobGroup, MyJob.class);
+    	detail = new JobDetailImpl(jobName2, jobGroup, NoOpJob.class);
     	detail.setDurability(true);
     	fJobStore.storeJob(detail, false);
     
@@ -297,7 +298,7 @@ public abstract class AbstractJobStoreTest extends TestCase {
 		
 		// Store jobs.
 		for (int i=0; i < 10; i++) {
-			JobDetail job = JobBuilder.newJob(MyJob.class).withIdentity("job" + i).build();
+			JobDetail job = JobBuilder.newJob(NoOpJob.class).withIdentity("job" + i).build();
 			store.storeJob(job, false);
 		}
 		// Retrieve jobs.
@@ -318,7 +319,7 @@ public abstract class AbstractJobStoreTest extends TestCase {
 		
 		// Store jobs and triggers.
 		for (int i=0; i < 10; i++) {
-			JobDetail job = JobBuilder.newJob(MyJob.class).withIdentity("job" + i).build();
+			JobDetail job = JobBuilder.newJob(NoOpJob.class).withIdentity("job" + i).build();
 			store.storeJob(job, true);
 			SimpleScheduleBuilder schedule = SimpleScheduleBuilder.simpleSchedule();
 			Trigger trigger = TriggerBuilder.newTrigger().withIdentity("job" + i).withSchedule(schedule).forJob(job).build();
@@ -349,7 +350,7 @@ public abstract class AbstractJobStoreTest extends TestCase {
 		Date startTime0 = new Date(System.currentTimeMillis() + MIN); // a min from now.
 		for (int i=0; i < 10; i++) {
 			Date startTime = new Date(startTime0.getTime() + i * MIN); // a min apart
-			JobDetail job = JobBuilder.newJob(MyJob.class).withIdentity("job" + i).build();
+			JobDetail job = JobBuilder.newJob(NoOpJob.class).withIdentity("job" + i).build();
 			SimpleScheduleBuilder schedule = SimpleScheduleBuilder.repeatMinutelyForever(2);
 			OperableTrigger trigger = (OperableTrigger)TriggerBuilder.newTrigger().withIdentity("job" + i).withSchedule(schedule).forJob(job).startAt(startTime).build();
 			
@@ -388,7 +389,7 @@ public abstract class AbstractJobStoreTest extends TestCase {
 		Date startTime0 = new Date(System.currentTimeMillis() + MIN); // a min from now.
 		for (int i=0; i < 10; i++) {
 			Date startTime = new Date(startTime0.getTime() + i * MIN); // a min apart
-			JobDetail job = JobBuilder.newJob(MyJob.class).withIdentity("job" + i).build();
+			JobDetail job = JobBuilder.newJob(NoOpJob.class).withIdentity("job" + i).build();
 			SimpleScheduleBuilder schedule = SimpleScheduleBuilder.repeatMinutelyForever(2);
 			OperableTrigger trigger = (OperableTrigger)TriggerBuilder.newTrigger().withIdentity("job" + i).withSchedule(schedule).forJob(job).startAt(startTime).build();
 			
@@ -429,10 +430,4 @@ public abstract class AbstractJobStoreTest extends TestCase {
         public void notifySchedulerListenersJobDeleted(JobKey jobKey) {
         }
     }
-	
-	/** An empty job for testing purpose. */
-	public static class MyJob implements Job {
-		public void execute(JobExecutionContext context) throws JobExecutionException {
-		}		
-	}
 }
