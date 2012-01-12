@@ -20,7 +20,6 @@ package org.quartz.ee.jmx.jboss;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
@@ -142,7 +141,6 @@ public class QuartzService extends ServiceMBeanSupport implements
         return jndiName;
     }
 
-    @Override
     public String getName() {
         return "QuartzService(" + jndiName + ")";
     }
@@ -160,7 +158,6 @@ public class QuartzService extends ServiceMBeanSupport implements
         useProperties = true;
 
         try {
-            properties = properties.replace(File.separator, "/");
             ByteArrayInputStream bais = new ByteArrayInputStream(properties
                     .getBytes());
             this.properties = new Properties();
@@ -209,7 +206,6 @@ public class QuartzService extends ServiceMBeanSupport implements
         return startScheduler;
     }    
     
-    @Override
     public void createService() throws Exception {
         log.info("Create QuartzService(" + jndiName + ")...");
 
@@ -241,7 +237,6 @@ public class QuartzService extends ServiceMBeanSupport implements
         log.info("QuartzService(" + jndiName + ") created.");
     }
 
-    @Override
     public void destroyService() throws Exception {
         log.info("Destroy QuartzService(" + jndiName + ")...");
 
@@ -250,7 +245,6 @@ public class QuartzService extends ServiceMBeanSupport implements
         log.info("QuartzService(" + jndiName + ") destroyed.");
     }
 
-    @Override
     public void startService() throws Exception {
         log.info("Start QuartzService(" + jndiName + ")...");
 
@@ -281,7 +275,6 @@ public class QuartzService extends ServiceMBeanSupport implements
         log.info("QuartzService(" + jndiName + ") started.");
     }
 
-    @Override
     public void stopService() throws Exception {
         log.info("Stop QuartzService(" + jndiName + ")...");
 
@@ -317,14 +310,14 @@ public class QuartzService extends ServiceMBeanSupport implements
         }
     }
     
-    private void unbind(String name) {
+    private void unbind(String jndiName) {
         InitialContext rootCtx = null;
         try {
             rootCtx = new InitialContext();
-            rootCtx.unbind(name);
-            NonSerializableFactory.unbind(name);
+            rootCtx.unbind(jndiName);
+            NonSerializableFactory.unbind(jndiName);
         } catch (NamingException e) {
-            log.warn("Failed to unbind scheduler with jndiName: " + name, e); 
+            log.warn("Failed to unbind scheduler with jndiName: " + jndiName, e); 
         } finally {
             if (rootCtx != null) { 
                 try { 

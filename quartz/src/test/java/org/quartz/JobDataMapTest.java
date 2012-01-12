@@ -20,16 +20,15 @@ package org.quartz;
  * Unit test for JobDataMap serialization backwards compatibility.
  */
 public class JobDataMapTest extends SerializationTestSupport {
-    private static final String[] VERSIONS = new String[] {"1.4.5", "1.5.1", "2.1"};
+    private static final String[] VERSIONS = new String[] {"1.4.5", "1.5.1"};
     
     /**
      * Get the object to serialize when generating serialized file for future
      * tests, and against which to validate deserialized object.
      */
-    @Override
     protected Object getTargetObject() {
         JobDataMap m = new JobDataMap();
-        m.put("key", Integer.valueOf(5));
+        m.put("key", new Integer(5));
         return m;
     }
     
@@ -37,7 +36,6 @@ public class JobDataMapTest extends SerializationTestSupport {
      * Get the Quartz versions for which we should verify
      * serialization backwards compatibility.
      */
-    @Override
     protected String[] getVersions() {
         return VERSIONS;
     }
@@ -46,7 +44,6 @@ public class JobDataMapTest extends SerializationTestSupport {
      * Verify that the target object and the object we just deserialized 
      * match.
      */
-    @Override
     protected void verifyMatch(Object target, Object deserialized) {
         JobDataMap targetMap = (JobDataMap)target;
         JobDataMap deserializedMap = (JobDataMap)deserialized;
@@ -56,8 +53,4 @@ public class JobDataMapTest extends SerializationTestSupport {
         assertEquals(targetMap.getAllowsTransientData(), deserializedMap.getAllowsTransientData());
         assertEquals(targetMap.isDirty(), deserializedMap.isDirty());
     }
-    
-    public static void main(String[] args) throws Exception {
-		new JobDataMapTest().writeJobDataFile("2.1");
-	}
 }

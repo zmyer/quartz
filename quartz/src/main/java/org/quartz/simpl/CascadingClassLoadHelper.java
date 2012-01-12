@@ -59,7 +59,7 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    private LinkedList<ClassLoadHelper> loadHelpers;
+    private LinkedList loadHelpers;
 
     private ClassLoadHelper bestCandidate;
 
@@ -77,14 +77,16 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
      * thread, which is the thread that is initializing Quartz.
      */
     public void initialize() {
-        loadHelpers = new LinkedList<ClassLoadHelper>();
+        loadHelpers = new LinkedList();
 
         loadHelpers.add(new LoadingLoaderClassLoadHelper());
         loadHelpers.add(new SimpleClassLoadHelper());
         loadHelpers.add(new ThreadContextClassLoadHelper());
         loadHelpers.add(new InitThreadContextClassLoadHelper());
         
-        for(ClassLoadHelper loadHelper: loadHelpers) {
+        Iterator iter = loadHelpers.iterator();
+        while (iter.hasNext()) {
+            ClassLoadHelper loadHelper = (ClassLoadHelper) iter.next();
             loadHelper.initialize();
         }
     }
@@ -92,7 +94,7 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
     /**
      * Return the class with the given name.
      */
-    public Class<?> loadClass(String name) throws ClassNotFoundException {
+    public Class loadClass(String name) throws ClassNotFoundException {
 
         if (bestCandidate != null) {
             try {
@@ -103,12 +105,12 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
         }
 
         Throwable throwable = null;
-        Class<?> clazz = null;
+        Class clazz = null;
         ClassLoadHelper loadHelper = null;
 
-        Iterator<ClassLoadHelper> iter = loadHelpers.iterator();
+        Iterator iter = loadHelpers.iterator();
         while (iter.hasNext()) {
-            loadHelper = iter.next();
+            loadHelper = (ClassLoadHelper) iter.next();
 
             try {
                 clazz = loadHelper.loadClass(name);
@@ -132,12 +134,6 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
         return clazz;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> Class<? extends T> loadClass(String name, Class<T> clazz)
-            throws ClassNotFoundException {
-        return (Class<? extends T>) loadClass(name);
-    }
-    
     /**
      * Finds a resource with a given name. This method returns null if no
      * resource with this name is found.
@@ -156,9 +152,9 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
 
         ClassLoadHelper loadHelper = null;
 
-        Iterator<ClassLoadHelper> iter = loadHelpers.iterator();
+        Iterator iter = loadHelpers.iterator();
         while (iter.hasNext()) {
-            loadHelper = iter.next();
+            loadHelper = (ClassLoadHelper) iter.next();
 
             result = loadHelper.getResource(name);
             if (result != null) {
@@ -188,9 +184,9 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
 
         ClassLoadHelper loadHelper = null;
 
-        Iterator<ClassLoadHelper> iter = loadHelpers.iterator();
+        Iterator iter = loadHelpers.iterator();
         while (iter.hasNext()) {
-            loadHelper = iter.next();
+            loadHelper = (ClassLoadHelper) iter.next();
 
             result = loadHelper.getResourceAsStream(name);
             if (result != null) {

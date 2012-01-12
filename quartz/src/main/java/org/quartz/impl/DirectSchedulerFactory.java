@@ -17,10 +17,9 @@
 
 package org.quartz.impl;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
+import org.quartz.spi.ThreadExecutor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -28,16 +27,18 @@ import org.quartz.SchedulerFactory;
 import org.quartz.core.JobRunShellFactory;
 import org.quartz.core.QuartzScheduler;
 import org.quartz.core.QuartzSchedulerResources;
+import org.quartz.core.SchedulingContext;
 import org.quartz.simpl.CascadingClassLoadHelper;
 import org.quartz.simpl.RAMJobStore;
 import org.quartz.simpl.SimpleThreadPool;
 import org.quartz.spi.ClassLoadHelper;
 import org.quartz.spi.JobStore;
 import org.quartz.spi.SchedulerPlugin;
-import org.quartz.spi.ThreadExecutor;
 import org.quartz.spi.ThreadPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * <p>
@@ -111,10 +112,6 @@ public class DirectSchedulerFactory implements SchedulerFactory {
 
     private static final DefaultThreadExecutor DEFAULT_THREAD_EXECUTOR = new DefaultThreadExecutor();
 
-    private static final int DEFAULT_BATCH_MAX_SIZE = 1;
-
-    private static final long DEFAULT_BATCH_TIME_WINDOW = 0L;
-
     /*
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      *
@@ -175,8 +172,17 @@ public class DirectSchedulerFactory implements SchedulerFactory {
         threadPool.initialize();
         JobStore jobStore = new RAMJobStore();
         this.createScheduler(threadPool, jobStore);
+
     }
 
+    /**
+     * @deprecated see correctly spelled method.
+     * @see #createVolatileScheduler(int)
+     */
+    public void createVolatileSchduler(int maxThreads)
+        throws SchedulerException {
+        createVolatileScheduler(maxThreads);
+    }
 
     /**
      * Creates a proxy to a remote scheduler. This scheduler can be retrieved
@@ -193,6 +199,7 @@ public class DirectSchedulerFactory implements SchedulerFactory {
         throws SchedulerException {
         createRemoteScheduler(DEFAULT_SCHEDULER_NAME, DEFAULT_INSTANCE_ID,
                 rmiHost, rmiPort);
+        initialized = true;
     }
 
     /**
@@ -244,16 +251,18 @@ public class DirectSchedulerFactory implements SchedulerFactory {
     public void createRemoteScheduler(String schedulerName,
             String schedulerInstanceId, String rmiBindName, String rmiHost, int rmiPort)
         throws SchedulerException {
+        SchedulingContext schedCtxt = new SchedulingContext();
+        schedCtxt.setInstanceId(schedulerInstanceId);
 
         String uid = (rmiBindName != null) ? rmiBindName :
             QuartzSchedulerResources.getUniqueIdentifier(
                 schedulerName, schedulerInstanceId);
 
-        RemoteScheduler remoteScheduler = new RemoteScheduler(uid, rmiHost, rmiPort);
+        RemoteScheduler remoteScheduler = new RemoteScheduler(schedCtxt, uid,
+                rmiHost, rmiPort);
 
         SchedulerRepository schedRep = SchedulerRepository.getInstance();
         schedRep.bind(remoteScheduler);
-        initialized = true;
     }
 
     /**
@@ -272,6 +281,7 @@ public class DirectSchedulerFactory implements SchedulerFactory {
         throws SchedulerException {
         createScheduler(DEFAULT_SCHEDULER_NAME, DEFAULT_INSTANCE_ID,
                 threadPool, jobStore);
+        initialized = true;
     }
 
     /**
@@ -364,7 +374,7 @@ public class DirectSchedulerFactory implements SchedulerFactory {
      */
     public void createScheduler(String schedulerName,
             String schedulerInstanceId, ThreadPool threadPool,
-            JobStore jobStore, Map<String, SchedulerPlugin> schedulerPluginMap,
+            JobStore jobStore, Map schedulerPluginMap,
             String rmiRegistryHost, int rmiRegistryPort,
             long idleWaitTime, long dbFailureRetryInterval,
             boolean jmxExport, String jmxObjectName)
@@ -407,63 +417,18 @@ public class DirectSchedulerFactory implements SchedulerFactory {
     public void createScheduler(String schedulerName,
             String schedulerInstanceId, ThreadPool threadPool,
             ThreadExecutor threadExecutor,
-            JobStore jobStore, Map<String, SchedulerPlugin> schedulerPluginMap,
+            JobStore jobStore, Map schedulerPluginMap,
             String rmiRegistryHost, int rmiRegistryPort,
             long idleWaitTime, long dbFailureRetryInterval,
             boolean jmxExport, String jmxObjectName)
-        throws SchedulerException {
-        createScheduler(schedulerName, schedulerInstanceId, threadPool,
-                DEFAULT_THREAD_EXECUTOR, jobStore, schedulerPluginMap,
-                rmiRegistryHost, rmiRegistryPort, idleWaitTime,
-                dbFailureRetryInterval, jmxExport, jmxObjectName, DEFAULT_BATCH_MAX_SIZE, DEFAULT_BATCH_TIME_WINDOW);
-    }
-
-    /**
-     * Creates a scheduler using the specified thread pool, job store, and
-     * plugins, and binds it to RMI.
-     *
-     * @param schedulerName
-     *          The name for the scheduler.
-     * @param schedulerInstanceId
-     *          The instance ID for the scheduler.
-     * @param threadPool
-     *          The thread pool for executing jobs
-     * @param threadExecutor
-     *          The thread executor for executing jobs
-     * @param jobStore
-     *          The type of job store
-     * @param schedulerPluginMap
-     *          Map from a <code>String</code> plugin names to
-     *          <code>{@link org.quartz.spi.SchedulerPlugin}</code>s.  Can use
-     *          "null" if no plugins are required.
-     * @param rmiRegistryHost
-     *          The hostname to register this scheduler with for RMI. Can use
-     *          "null" if no RMI is required.
-     * @param rmiRegistryPort
-     *          The port for RMI. Typically 1099.
-     * @param idleWaitTime
-     *          The idle wait time in milliseconds. You can specify "-1" for
-     *          the default value, which is currently 30000 ms.
-     * @param maxBatchSize
-     *          The maximum batch size of triggers, when acquiring them
-     * @param batchTimeWindow
-     *          The time window for which it is allowed to "pre-acquire" triggers to fire
-     * @throws SchedulerException
-     *           if initialization failed
-     */
-    public void createScheduler(String schedulerName,
-            String schedulerInstanceId, ThreadPool threadPool,
-            ThreadExecutor threadExecutor,
-            JobStore jobStore, Map<String, SchedulerPlugin> schedulerPluginMap,
-            String rmiRegistryHost, int rmiRegistryPort,
-            long idleWaitTime, long dbFailureRetryInterval,
-            boolean jmxExport, String jmxObjectName, int maxBatchSize, long batchTimeWindow)
         throws SchedulerException {
         // Currently only one run-shell factory is available...
         JobRunShellFactory jrsf = new StdJobRunShellFactory();
 
         // Fire everything up
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        SchedulingContext schedCtxt = new SchedulingContext();
+        schedCtxt.setInstanceId(schedulerInstanceId);
 
         threadPool.initialize();
         
@@ -476,23 +441,22 @@ public class DirectSchedulerFactory implements SchedulerFactory {
         qrs.setThreadPool(threadPool);
         qrs.setThreadExecutor(threadExecutor);
         qrs.setJobStore(jobStore);
-        qrs.setMaxBatchSize(maxBatchSize);
-        qrs.setBatchTimeWindow(batchTimeWindow);
         qrs.setRMIRegistryHost(rmiRegistryHost);
         qrs.setRMIRegistryPort(rmiRegistryPort);
         qrs.setJMXExport(jmxExport);
         if (jmxObjectName != null) {
            qrs.setJMXObjectName(jmxObjectName);
         }
-        
+
         // add plugins
         if (schedulerPluginMap != null) {
-            for (Iterator<SchedulerPlugin> pluginIter = schedulerPluginMap.values().iterator(); pluginIter.hasNext();) {
-                qrs.addSchedulerPlugin(pluginIter.next());
+            for (Iterator pluginIter = schedulerPluginMap.values().iterator(); pluginIter.hasNext();) {
+                qrs.addSchedulerPlugin((SchedulerPlugin)pluginIter.next());
             }
         }
 
-        QuartzScheduler qs = new QuartzScheduler(qrs, idleWaitTime, dbFailureRetryInterval);
+        QuartzScheduler qs = new QuartzScheduler(qrs, schedCtxt, idleWaitTime,
+                dbFailureRetryInterval);
 
         ClassLoadHelper cch = new CascadingClassLoadHelper();
         cch.initialize();
@@ -501,19 +465,20 @@ public class DirectSchedulerFactory implements SchedulerFactory {
 
         jobStore.initialize(cch, qs.getSchedulerSignaler());
 
-        Scheduler scheduler = new StdScheduler(qs);
+        Scheduler scheduler = new StdScheduler(qs, schedCtxt);
 
-        jrsf.initialize(scheduler);
+        jrsf.initialize(scheduler, schedCtxt);
 
         qs.initialize();
         
 
         // Initialize plugins now that we have a Scheduler instance.
         if (schedulerPluginMap != null) {
-            for (Iterator<Entry<String, SchedulerPlugin>> pluginEntryIter = schedulerPluginMap.entrySet().iterator(); pluginEntryIter.hasNext();) {
-                Entry<String, SchedulerPlugin> pluginEntry = pluginEntryIter.next();
+            for (Iterator pluginEntryIter = schedulerPluginMap.entrySet().iterator(); pluginEntryIter.hasNext();) {
+                Map.Entry pluginEntry = (Map.Entry)pluginEntryIter.next();
 
-                pluginEntry.getValue().initialize(pluginEntry.getKey(), scheduler);
+                ((SchedulerPlugin)pluginEntry.getValue()).initialize(
+                        (String)pluginEntry.getKey(), scheduler);
             }
         }
 
@@ -527,8 +492,6 @@ public class DirectSchedulerFactory implements SchedulerFactory {
         // garbage collected
 
         schedRep.bind(scheduler);
-        
-        initialized = true;
     }
 
     /*
@@ -575,7 +538,7 @@ public class DirectSchedulerFactory implements SchedulerFactory {
      * StdSchedulerFactory instance.).
      * </p>
      */
-    public Collection<Scheduler> getAllSchedulers() throws SchedulerException {
+    public Collection getAllSchedulers() throws SchedulerException {
         return SchedulerRepository.getInstance().lookupAll();
     }
 

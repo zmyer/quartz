@@ -24,13 +24,12 @@ import org.slf4j.LoggerFactory;
 import org.quartz.InterruptableJob;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import org.quartz.JobKey;
 import org.quartz.UnableToInterruptJobException;
 
 
 /**
  * <p>
- * A dumb implementation of an InterruptableJob, for unit testing purposes.
+ * A dumb implementation of an InterruptableJob, for unittesting purposes.
  * </p>
  * 
  * @author <a href="mailto:bonhamcm@thirdeyeconsulting.com">Chris Bonham</a>
@@ -45,11 +44,11 @@ public class DumbInterruptableJob implements InterruptableJob {
     private boolean _interrupted = false;
 
     // job name 
-    private JobKey _jobKey = null;
+    private String _jobName = "";
     
     /**
      * <p>
-     * Empty constructor for job initialization
+     * Empty constructor for job initilization
      * </p>
      */
     public DumbInterruptableJob() {
@@ -68,8 +67,8 @@ public class DumbInterruptableJob implements InterruptableJob {
     public void execute(JobExecutionContext context)
         throws JobExecutionException {
 
-        _jobKey = context.getJobDetail().getKey();
-        _log.info("---- " + _jobKey + " executing at " + new Date());
+        _jobName = context.getJobDetail().getFullName();
+        _log.info("---- " + _jobName + " executing at " + new Date());
 
         try {
             // main job loop... see the JavaDOC for InterruptableJob for discussion...
@@ -84,7 +83,7 @@ public class DumbInterruptableJob implements InterruptableJob {
                 
                 // periodically check if we've been interrupted...
                 if(_interrupted) {
-                    _log.info("--- " + _jobKey + "  -- Interrupted... bailing out!");
+                    _log.info("--- " + _jobName + "  -- Interrupted... bailing out!");
                     return; // could also choose to throw a JobExecutionException 
                              // if that made for sense based on the particular  
                              // job's responsibilities/behaviors
@@ -92,7 +91,7 @@ public class DumbInterruptableJob implements InterruptableJob {
             }
             
         } finally {
-            _log.info("---- " + _jobKey + " completed at " + new Date());
+            _log.info("---- " + _jobName + " completed at " + new Date());
         }
     }
     
@@ -107,7 +106,7 @@ public class DumbInterruptableJob implements InterruptableJob {
      *           if there is an exception while interrupting the job.
      */
     public void interrupt() throws UnableToInterruptJobException {
-        _log.info("---" + _jobKey + "  -- INTERRUPTING --");
+        _log.info("---" + "  -- INTERRUPTING --");
         _interrupted = true;
     }
 

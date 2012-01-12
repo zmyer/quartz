@@ -6,9 +6,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import junit.framework.TestCase;
 
+import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.simpl.RAMJobStore;
 import org.quartz.simpl.SimpleThreadPool;
@@ -21,10 +25,10 @@ public class SchedulerDetailsSetterTest extends TestCase {
         props.load(getClass().getResourceAsStream("/org/quartz/quartz.properties"));
         props.setProperty(StdSchedulerFactory.PROP_THREAD_POOL_CLASS, MyThreadPool.class.getName());
         props.setProperty(StdSchedulerFactory.PROP_JOB_STORE_CLASS, MyJobStore.class.getName());
-        
+
         StdSchedulerFactory factory = new StdSchedulerFactory(props);
-        factory.getScheduler(); // this will initialize all the test fixtures.
-        
+        Scheduler scheduler = factory.getScheduler();
+
         assertEquals(3, instanceIdCalls.get());
         assertEquals(3, instanceNameCalls.get());
 
@@ -68,8 +72,8 @@ public class SchedulerDetailsSetterTest extends TestCase {
         cw.visitEnd();
 
         return (ThreadPool) new ClassLoader() {
-            Class<?> defineClass(String clname, byte[] b) {
-                return defineClass(clname, b, 0, b.length);
+            Class defineClass(String name, byte[] b) {
+                return defineClass(name, b, 0, b.length);
             }
         }.defineClass(name, cw.toByteArray()).newInstance();
     }

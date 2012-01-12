@@ -16,14 +16,12 @@
 package org.quartz;
 
 import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import junit.framework.TestCase;
 
 import org.quartz.core.QuartzScheduler;
 
 public class VersionTest extends TestCase {
     private static final String SNAPSHOT_SUFFIX = "-SNAPSHOT";
-    private static final String PROTOTYPE_SUFFIX = "-PROTO";
 
     public void testVersionParsing() {
         assertNonNegativeInteger(QuartzScheduler.getVersionMajor());
@@ -31,14 +29,12 @@ public class VersionTest extends TestCase {
 
         String iter = QuartzScheduler.getVersionIteration();
         assertNotNull(iter);
-        Pattern suffix = Pattern.compile("(\\d+)(-\\w+)?");
-        Matcher m = suffix.matcher(iter);
-        if (m.matches()) {
-          assertNonNegativeInteger(m.group(1));
-        } else {
-          throw new RuntimeException(iter + " doesn't match pattern '(\\d+)(-\\w+)?'");
-        } 
-
+        if (iter.endsWith(SNAPSHOT_SUFFIX)) {
+            assertNonNegativeInteger(iter.substring(0, iter.length() - SNAPSHOT_SUFFIX.length()));
+        }
+        else {
+            assertNonNegativeInteger(iter);
+        }
     }
 
     private void assertNonNegativeInteger(String s) {

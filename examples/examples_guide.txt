@@ -11,17 +11,12 @@ Additionally, each example directory contains a readme.txt file.  Please
 read this file first, as it will contain useful information for running 
 the examples.
 
-Running examples with Maven:
-- All examples except 13 and 15 can be run with Maven command:
-
-%> mvn install ( run at least once to compile the examples )
-%> mvn exec:exec -P exampleX   (where X is 1 to 15)
 
 Examples Listing
 ================
 
 example1 -  Your first Quartz Program
-example2 -  Simple Triggers
+example2 -  Simple Job Triggers
 example3 -  Cron Triggers
 example4 -  Job State and Job Parameters
 example5 -  Job Misfires

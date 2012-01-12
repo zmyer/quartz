@@ -24,11 +24,12 @@ import javax.transaction.HeuristicRollbackException;
 import javax.transaction.NotSupportedException;
 import javax.transaction.RollbackException;
 import javax.transaction.SystemException;
+import javax.transaction.TransactionManager;
 import javax.transaction.UserTransaction;
 
-import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.quartz.SchedulerException;
 
 /**
  * <p>
@@ -177,7 +178,6 @@ public class UserTransactionHelper {
          * When we are being garbage collected, make sure we were properly
          * returned to the UserTransactionHelper.
          */
-        @Override
         protected void finalize() throws Throwable {
             try {
                 if (context != null) {

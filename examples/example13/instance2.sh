@@ -2,7 +2,7 @@
 
 # Change this to your JDK installation root
 #
-#JAVA_HOME=/usr/java/jdk1.6.0_18
+#JAVA_HOME=/usr/java/j2sdk1.4.0_01
 
 JRE=$JAVA_HOME/jre
 JAVA=$JRE/bin/java
@@ -13,9 +13,9 @@ QUARTZ=${workdir}/../..
 
 . ${QUARTZ}/examples/bin/buildcp.sh
 
+#
 # Set the path to your JDCB Driver jar file here
-# or just drop the jar in the Quartz lib folder
-# JDBC_CP=/home/user/lib/postgres.jar
+JDBC_CP=/home/user/lib/postgres.jar
 
 QUARTZ_CP=$QUARTZ_CP:$JDBC_CP
 

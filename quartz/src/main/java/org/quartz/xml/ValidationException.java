@@ -36,7 +36,7 @@ public class ValidationException extends Exception {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    private Collection<Exception> validationExceptions = new ArrayList<Exception>();
+    private Collection validationExceptions = new ArrayList();
 
     /*
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -105,7 +105,7 @@ public class ValidationException extends Exception {
      * 
      * @return collection of errors.
      */
-    public Collection<Exception> getValidationExceptions() {
+    public Collection getValidationExceptions() {
         return validationExceptions;
     }
 
@@ -114,7 +114,6 @@ public class ValidationException extends Exception {
      * 
      * @return the detail message string.
      */
-    @Override
     public String getMessage() {
         if (getValidationExceptions().size() == 0) { return super.getMessage(); }
 
@@ -122,9 +121,9 @@ public class ValidationException extends Exception {
 
         boolean first = true;
 
-        for (Iterator<Exception> iter = getValidationExceptions().iterator(); iter
+        for (Iterator iter = getValidationExceptions().iterator(); iter
                 .hasNext(); ) {
-            Exception e = iter.next();
+            Exception e = (Exception) iter.next();
 
             if (!first) {
                 sb.append('\n');

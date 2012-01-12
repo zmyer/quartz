@@ -17,21 +17,17 @@
 
 package org.quartz.examples.example4;
 
-import static org.quartz.JobBuilder.newJob;
-import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
-import static org.quartz.TriggerBuilder.newTrigger;
-import static org.quartz.DateBuilder.*;
-
 import java.util.Date;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerFactory;
 import org.quartz.SchedulerMetaData;
 import org.quartz.SimpleTrigger;
+import org.quartz.TriggerUtils;
 import org.quartz.impl.StdSchedulerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This Example will demonstrate how job parameters can be 
@@ -55,45 +51,27 @@ public class JobStateExample {
         log.info("------- Scheduling Jobs ----------------");
 
         // get a "nice round" time a few seconds in the future....
-        Date startTime = nextGivenSecondDate(null, 10);
+        long ts = TriggerUtils.getNextGivenSecondDate(null, 10).getTime();
 
-        // job1 will only run 5 times (at start time, plus 4 repeats), every 10 seconds
-        JobDetail job1 = newJob(ColorJob.class)
-            .withIdentity("job1", "group1")
-            .build();
-    
-        SimpleTrigger trigger1 = newTrigger() 
-            .withIdentity("trigger1", "group1")
-            .startAt(startTime)
-            .withSchedule(simpleSchedule()
-                    .withIntervalInSeconds(10)
-                    .withRepeatCount(4))
-            .build();
-        
+        // job1 will only run 5 times, every 10 seconds
+        JobDetail job1 = new JobDetail("job1", "group1", ColorJob.class);
+        SimpleTrigger trigger1 = new SimpleTrigger("trigger1", "group1", "job1", "group1",
+                new Date(ts), null, 4, 10000);
         // pass initialization parameters into the job
         job1.getJobDataMap().put(ColorJob.FAVORITE_COLOR, "Green");
         job1.getJobDataMap().put(ColorJob.EXECUTION_COUNT, 1);
         
         // schedule the job to run
         Date scheduleTime1 = sched.scheduleJob(job1, trigger1);
-        log.info(job1.getKey() +
+        log.info(job1.getFullName() +
                 " will run at: " + scheduleTime1 +  
                 " and repeat: " + trigger1.getRepeatCount() + 
                 " times, every " + trigger1.getRepeatInterval() / 1000 + " seconds");
 
         // job2 will also run 5 times, every 10 seconds
-        JobDetail job2 = newJob(ColorJob.class)
-            .withIdentity("job2", "group1")
-            .build();
-    
-        SimpleTrigger trigger2 = newTrigger() 
-            .withIdentity("trigger2", "group1")
-            .startAt(startTime)
-            .withSchedule(simpleSchedule()
-                    .withIntervalInSeconds(10)
-                    .withRepeatCount(4))
-            .build();
-
+        JobDetail job2 = new JobDetail("job2", "group1", ColorJob.class);
+        SimpleTrigger trigger2 = new SimpleTrigger("trigger2", "group1", "job2", "group1",
+                new Date(ts + 1000), null, 4, 10000);
         // pass initialization parameters into the job
         // this job has a different favorite color!
         job2.getJobDataMap().put(ColorJob.FAVORITE_COLOR, "Red");
@@ -101,7 +79,7 @@ public class JobStateExample {
         
         // schedule the job to run
         Date scheduleTime2 = sched.scheduleJob(job2, trigger2);
-        log.info(job2.getKey().toString() +
+        log.info(job2.getFullName() +
                 " will run at: " + scheduleTime2 +
                 " and repeat: " + trigger2.getRepeatCount() +
                 " times, every " + trigger2.getRepeatInterval() / 1000 + " seconds"); 

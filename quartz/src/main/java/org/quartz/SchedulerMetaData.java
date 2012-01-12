@@ -21,8 +21,10 @@ package org.quartz;
 import java.util.Date;
 
 /**
+ * <p>
  * Describes the settings and capabilities of a given <code>{@link Scheduler}</code>
  * instance.
+ * </p>
  * 
  * @author James House
  */
@@ -40,7 +42,7 @@ public class SchedulerMetaData implements java.io.Serializable {
 
     private String schedInst;
 
-    private Class<?> schedClass;
+    private Class schedClass;
 
     private boolean isRemote;
 
@@ -54,13 +56,13 @@ public class SchedulerMetaData implements java.io.Serializable {
 
     private int numJobsExec;
 
-    private Class<?> jsClass;
+    private Class jsClass;
 
     private boolean jsPersistent;
 
     private boolean jsClustered;
 
-    private Class<?> tpClass;
+    private Class tpClass;
 
     private int tpSize;
 
@@ -75,9 +77,9 @@ public class SchedulerMetaData implements java.io.Serializable {
      */
 
     public SchedulerMetaData(String schedName, String schedInst,
-            Class<?> schedClass, boolean isRemote, boolean started,
+            Class schedClass, boolean isRemote, boolean started,
             boolean isInStandbyMode, boolean shutdown, Date startTime, int numJobsExec,
-            Class<?> jsClass, boolean jsPersistent, boolean jsClustered, Class<?> tpClass, int tpSize,
+            Class jsClass, boolean jsPersistent, boolean jsClustered, Class tpClass, int tpSize,
             String version) {
         this.schedName = schedName;
         this.schedInst = schedInst;
@@ -127,7 +129,7 @@ public class SchedulerMetaData implements java.io.Serializable {
      * Returns the class-name of the <code>Scheduler</code> instance.
      * </p>
      */
-    public Class<?> getSchedulerClass() {
+    public Class getSchedulerClass() {
         return schedClass;
     }
 
@@ -198,7 +200,7 @@ public class SchedulerMetaData implements java.io.Serializable {
      * being used by the <code>Scheduler</code>.
      * </p>
      */
-    public Class<?> getJobStoreClass() {
+    public Class getJobStoreClass() {
         return jsClass;
     }
 
@@ -240,7 +242,7 @@ public class SchedulerMetaData implements java.io.Serializable {
      * being used by the <code>Scheduler</code>.
      * </p>
      */
-    public Class<?> getThreadPoolClass() {
+    public Class getThreadPoolClass() {
         return tpClass;
     }
 
@@ -268,7 +270,6 @@ public class SchedulerMetaData implements java.io.Serializable {
      * Return a simple string representation of this object.
      * </p>
      */
-    @Override
     public String toString() {
         try {
             return getSummary();

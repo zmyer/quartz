@@ -46,7 +46,7 @@ public class HolidayCalendar extends BaseCalendar implements Calendar,
     static final long serialVersionUID = -7590908752291814693L;
     
     // A sorted set to store the holidays
-    private TreeSet<Date> dates = new TreeSet<Date>();
+    private TreeSet dates = new TreeSet();
 
     public HolidayCalendar() {
     }
@@ -63,10 +63,9 @@ public class HolidayCalendar extends BaseCalendar implements Calendar,
         super(baseCalendar, timeZone);
     }
 
-    @Override
     public Object clone() {
         HolidayCalendar clone = (HolidayCalendar) super.clone();
-        clone.dates = new TreeSet<Date>(dates);
+        clone.dates = new TreeSet(dates);
         return clone;
     }
     
@@ -80,7 +79,6 @@ public class HolidayCalendar extends BaseCalendar implements Calendar,
      * Note that this Calendar is only has full-day precision.
      * </p>
      */
-    @Override
     public boolean isTimeIncluded(long timeStamp) {
         if (super.isTimeIncluded(timeStamp) == false) {
             return false;
@@ -101,7 +99,6 @@ public class HolidayCalendar extends BaseCalendar implements Calendar,
      * Note that this Calendar is only has full-day precision.
      * </p>
      */
-    @Override
     public long getNextIncludedTime(long timeStamp) {
 
         // Call base calendar implementation first
@@ -146,7 +143,7 @@ public class HolidayCalendar extends BaseCalendar implements Calendar,
      * significant.
      * </p>
      */
-    public SortedSet<Date> getExcludedDates() {
+    public SortedSet getExcludedDates() {
         return Collections.unmodifiableSortedSet(dates);
     }
 }

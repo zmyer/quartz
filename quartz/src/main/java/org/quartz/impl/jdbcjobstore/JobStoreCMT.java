@@ -121,7 +121,6 @@ public class JobStoreCMT extends JobStoreSupport {
     }
     
 
-    @Override
     public void initialize(ClassLoadHelper loadHelper,
             SchedulerSignaler signaler) throws SchedulerConfigException {
 
@@ -145,7 +144,6 @@ public class JobStoreCMT extends JobStoreSupport {
         getLog().info("JobStoreCMT initialized.");
     }
     
-    @Override
     public void shutdown() {
 
         super.shutdown();
@@ -157,7 +155,6 @@ public class JobStoreCMT extends JobStoreSupport {
         }
     }
 
-    @Override
     protected Connection getNonManagedTXConnection()
         throws JobPersistenceException {
         Connection conn = null;
@@ -173,7 +170,8 @@ public class JobStoreCMT extends JobStoreSupport {
             throw new JobPersistenceException(
                 "Failed to obtain DB connection from data source '"
                         + getNonManagedTXDataSource() + "': "
-                        + e.toString(), e);
+                        + e.toString(), e,
+                JobPersistenceException.ERR_PERSISTENCE_CRITICAL_FAILURE);
         }
 
         if (conn == null) { 
@@ -221,7 +219,6 @@ public class JobStoreCMT extends JobStoreSupport {
      * @see JobStoreSupport#getNonManagedTXConnection()
      * @see JobStoreSupport#getConnection()
      */
-    @Override
     protected Object executeInLock(
             String lockName, 
             TransactionCallback txCallback) throws JobPersistenceException {

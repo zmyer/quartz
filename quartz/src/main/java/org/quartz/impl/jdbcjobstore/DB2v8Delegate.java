@@ -19,7 +19,6 @@ package org.quartz.impl.jdbcjobstore;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-import org.quartz.spi.ClassLoadHelper;
 import org.slf4j.Logger;
 
 /**
@@ -33,20 +32,19 @@ import org.slf4j.Logger;
  */
 public class DB2v8Delegate extends StdJDBCDelegate {
 
-    public DB2v8Delegate(Logger logger, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper) {
-        super(logger, tablePrefix, schedName, instanceId, classLoadHelper);
+    public DB2v8Delegate(Logger logger, String tablePrefix, String instanceId) {
+        super(logger, tablePrefix, instanceId);
     }
 
-    public DB2v8Delegate(Logger log, String tablePrefix, String schedName, String instanceId,
-            Boolean useProperties, ClassLoadHelper classLoadHelper) {
-        super(log, tablePrefix, schedName, instanceId, classLoadHelper, useProperties);
+    public DB2v8Delegate(Logger log, String tablePrefix, String instanceId,
+            Boolean useProperties) {
+        super(log, tablePrefix, instanceId, useProperties);
     }
 
     /**
      * Sets the designated parameter to the given Java <code>boolean</code> value.
      * This translates the boolean to 1/0 for true/false.
      */
-    @Override           
     protected void setBoolean(PreparedStatement ps, int index, boolean val) throws SQLException {
         ps.setInt(index, ((val) ? 1 : 0));
     }

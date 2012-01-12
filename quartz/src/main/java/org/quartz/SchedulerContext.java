@@ -24,9 +24,11 @@ import java.util.Map;
 import org.quartz.utils.StringKeyDirtyFlagMap;
 
 /**
+ * <p>
  * Holds context/environment data that can be made available to Jobs as they
  * are executed. This feature is much like the ServletContext feature when
  * working with J2EE servlets.
+ * </p>
  * 
  * <p>
  * Future versions of Quartz may make distinctions on how it propagates
@@ -49,10 +51,9 @@ public class SchedulerContext extends StringKeyDirtyFlagMap implements Serializa
     /**
      * Create a <code>SchedulerContext</code> with the given data.
      */
-    public SchedulerContext(Map<?, ?> map) {
+    public SchedulerContext(Map map) {
         this();
-        @SuppressWarnings("unchecked") // param must be a String key map.
-		Map<String, ?> mapTyped = (Map<String, ?>)map;
-        putAll(mapTyped);
+
+        putAll(map);
     }
 }

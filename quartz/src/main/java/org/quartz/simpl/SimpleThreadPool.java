@@ -25,7 +25,6 @@ import org.quartz.spi.ThreadPool;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * <p>
@@ -73,9 +72,9 @@ public class SimpleThreadPool implements ThreadPool {
 
     private final Object nextRunnableLock = new Object();
 
-    private List<WorkerThread> workers;
-    private LinkedList<WorkerThread> availWorkers = new LinkedList<WorkerThread>();
-    private LinkedList<WorkerThread> busyWorkers = new LinkedList<WorkerThread>();
+    private List workers;
+    private LinkedList availWorkers = new LinkedList();
+    private LinkedList busyWorkers = new LinkedList();
 
     private String threadNamePrefix;
 
@@ -274,17 +273,17 @@ public class SimpleThreadPool implements ThreadPool {
         }
 
         // create the worker threads and start them
-        Iterator<WorkerThread> workerThreads = createWorkerThreads(count).iterator();
+        Iterator workerThreads = createWorkerThreads(count).iterator();
         while(workerThreads.hasNext()) {
-            WorkerThread wt = workerThreads.next();
+            WorkerThread wt = (WorkerThread) workerThreads.next();
             wt.start();
             availWorkers.add(wt);
         }
     }
 
-    protected List<WorkerThread> createWorkerThreads(int createCount) {
-        workers = new LinkedList<WorkerThread>();
-        for (int i = 1; i<= createCount; ++i) {
+    protected List createWorkerThreads(int count) {
+        workers = new LinkedList();
+        for (int i = 1; i<= count; ++i) {
             WorkerThread wt = new WorkerThread(this, threadGroup,
                 getThreadNamePrefix() + "-" + i,
                 getThreadPriority(),
@@ -324,17 +323,15 @@ public class SimpleThreadPool implements ThreadPool {
     public void shutdown(boolean waitForJobsToComplete) {
 
         synchronized (nextRunnableLock) {
-            getLog().debug("Shutting down threadpool...");
-
             isShutdown = true;
 
             if(workers == null) // case where the pool wasn't even initialize()ed
                 return;
 
             // signal each worker thread to shut down
-            Iterator<WorkerThread> workerThreads = workers.iterator();
+            Iterator workerThreads = workers.iterator();
             while(workerThreads.hasNext()) {
-                WorkerThread wt = workerThreads.next();
+                WorkerThread wt = (WorkerThread) workerThreads.next();
                 wt.shutdown();
                 availWorkers.remove(wt);
             }
@@ -365,20 +362,9 @@ public class SimpleThreadPool implements ThreadPool {
                     } catch (InterruptedException ex) {
                     }
                 }
-                
-                workerThreads = workers.iterator();
-                while(workerThreads.hasNext()) {
-                    WorkerThread wt = (WorkerThread) workerThreads.next();
-                    try {
-                        wt.join();
-                        workerThreads.remove();
-                    } catch (InterruptedException ignore) {
-                    }
-                }
 
-                getLog().debug("No executing jobs remaining, all threads stopped.");
+                getLog().debug("shutdown complete");
             }
-            getLog().debug("Shutdown of threadpool complete.");
         }
     }
 
@@ -477,7 +463,7 @@ public class SimpleThreadPool implements ThreadPool {
     class WorkerThread extends Thread {
 
         // A flag that signals the WorkerThread to terminate.
-        private AtomicBoolean run = new AtomicBoolean(true);
+        private boolean run = true;
 
         private SimpleThreadPool tp;
 
@@ -522,7 +508,9 @@ public class SimpleThreadPool implements ThreadPool {
          * </p>
          */
         void shutdown() {
-            run.set(false);
+        	synchronized (this) {
+        		run = false;
+        	}
         }
 
         public void run(Runnable newRunnable) {
@@ -541,21 +529,24 @@ public class SimpleThreadPool implements ThreadPool {
          * Loop, executing targets as they are received.
          * </p>
          */
-        @Override
         public void run() {
             boolean ran = false;
+            boolean shouldRun = false;
+            synchronized(this) {
+            	shouldRun = run;
+            }
             
-            while (run.get()) {
+            while (shouldRun) {
                 try {
                     synchronized(this) {
-                        while (runnable == null && run.get()) {
+                        while (runnable == null && run) {
                             this.wait(500);
                         }
+                    }
 
-                        if (runnable != null) {
-                            ran = true;
-                            runnable.run();
-                        }
+                    if (runnable != null) {
+                        ran = true;
+                        runnable.run();
                     }
                 } catch (InterruptedException unblock) {
                     // do nothing (loop will terminate if shutdown() was called
@@ -581,13 +572,21 @@ public class SimpleThreadPool implements ThreadPool {
                     }
 
                     if (runOnce) {
-                       	run.set(false);
+                        synchronized(this) {
+                        	run = false;
+                        }
                         clearFromBusyWorkersList(this);
                     } else if(ran) {
                         ran = false;
                         makeAvailable(this);
                     }
 
+                }
+
+                // read value of run within synchronized block to be 
+                // sure of its value
+                synchronized(this) {
+                	shouldRun = run;
                 }
             }
 

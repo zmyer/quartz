@@ -21,9 +21,9 @@ package org.quartz.core;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.quartz.spi.ThreadExecutor;
 import org.quartz.spi.JobStore;
 import org.quartz.spi.SchedulerPlugin;
-import org.quartz.spi.ThreadExecutor;
 import org.quartz.spi.ThreadPool;
 
 /**
@@ -72,7 +72,7 @@ public class QuartzSchedulerResources {
 
     private JobRunShellFactory jobRunShellFactory;
 
-    private List<SchedulerPlugin> schedulerPlugins = new ArrayList<SchedulerPlugin>(10);
+    private ArrayList schedulerPlugins = new ArrayList(10);
     
     private boolean makeSchedulerThreadDaemon = false;
 
@@ -85,16 +85,12 @@ public class QuartzSchedulerResources {
     private String jmxObjectName;
 
     private ThreadExecutor threadExecutor;
-
+    
     private boolean runUpdateCheck = true;
-
-    private long batchTimeWindow = 0;
-
-    private int maxBatchSize = 1;
-
+    
     private boolean interruptJobsOnShutdown = false;
     private boolean interruptJobsOnShutdownWithWait = false;
-    
+   
     /*
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      * 
@@ -414,7 +410,7 @@ public class QuartzSchedulerResources {
      * <code>{@link QuartzScheduler}</code> to use.
      * </p>
      */
-    public List<SchedulerPlugin> getSchedulerPlugins() {
+    public List getSchedulerPlugins() {
         return schedulerPlugins;
     }
 
@@ -514,7 +510,7 @@ public class QuartzSchedulerResources {
 
     /**
      * Get the ThreadExecutor which runs the QuartzSchedulerThread
-     *
+     * 
      * @return
      */
     public ThreadExecutor getThreadExecutor() {
@@ -529,7 +525,7 @@ public class QuartzSchedulerResources {
     public void setThreadExecutor(ThreadExecutor threadExecutor) {
         this.threadExecutor = threadExecutor;
     }
-
+    
     /**
      * Create the name under which this scheduler should be registered in JMX.
      * <p>
@@ -551,22 +547,6 @@ public class QuartzSchedulerResources {
         this.runUpdateCheck = runUpdateCheck;
     }
 
-    public long getBatchTimeWindow() {
-        return batchTimeWindow;
-    }
-
-    public void setBatchTimeWindow(long batchTimeWindow) {
-        this.batchTimeWindow = batchTimeWindow;
-    }
-
-    public int getMaxBatchSize() {
-      return maxBatchSize;
-    }
-
-    public void setMaxBatchSize(int maxBatchSize) {
-      this.maxBatchSize = maxBatchSize;
-    }
-    
     public boolean isInterruptJobsOnShutdown() {
         return interruptJobsOnShutdown;
     }
@@ -574,7 +554,7 @@ public class QuartzSchedulerResources {
     public void setInterruptJobsOnShutdown(boolean interruptJobsOnShutdown) {
         this.interruptJobsOnShutdown = interruptJobsOnShutdown;
     }
-    
+
     public boolean isInterruptJobsOnShutdownWithWait() {
         return interruptJobsOnShutdownWithWait;
     }

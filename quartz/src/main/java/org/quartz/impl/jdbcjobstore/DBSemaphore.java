@@ -40,17 +40,13 @@ public abstract class DBSemaphore implements Semaphore, Constants,
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    ThreadLocal<HashSet<String>> lockOwners = new ThreadLocal<HashSet<String>>();
+    ThreadLocal lockOwners = new ThreadLocal();
 
     private String sql;
-    private String insertSql;
 
     private String tablePrefix;
     
-    private String schedName;
-
     private String expandedSQL;
-    private String expandedInsertSQL;
 
     /*
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -60,11 +56,10 @@ public abstract class DBSemaphore implements Semaphore, Constants,
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    public DBSemaphore(String tablePrefix, String schedName, String defaultSQL, String defaultInsertSQL) {
+    public DBSemaphore(String tablePrefix, String sql, String defaultSQL) {
+        this.sql = defaultSQL;
         this.tablePrefix = tablePrefix;
-        this.schedName = schedName;
-        setSQL(defaultSQL);
-        setInsertSQL(defaultInsertSQL);
+        setSQL(sql);
     }
 
     /*
@@ -79,10 +74,10 @@ public abstract class DBSemaphore implements Semaphore, Constants,
         return log;
     }
 
-    private HashSet<String> getThreadLocks() {
-        HashSet<String> threadLocks = lockOwners.get();
+    private HashSet getThreadLocks() {
+        HashSet threadLocks = (HashSet) lockOwners.get();
         if (threadLocks == null) {
-            threadLocks = new HashSet<String>();
+            threadLocks = new HashSet();
             lockOwners.set(threadLocks);
         }
         return threadLocks;
@@ -91,8 +86,8 @@ public abstract class DBSemaphore implements Semaphore, Constants,
     /**
      * Execute the SQL that will lock the proper database row.
      */
-    protected abstract void executeSQL(Connection conn, String lockName, String theExpandedSQL, String theExpandedInsertSQL) 
-        throws LockException;
+    protected abstract void executeSQL(
+        Connection conn, String lockName, String expandedSQL) throws LockException;
     
     /**
      * Grants a lock on the identified resource to the calling thread (blocking
@@ -105,6 +100,8 @@ public abstract class DBSemaphore implements Semaphore, Constants,
 
         lockName = lockName.intern();
 
+        Logger log = getLog();
+        
         if(log.isDebugEnabled()) {
             log.debug(
                 "Lock '" + lockName + "' is desired by: "
@@ -112,7 +109,7 @@ public abstract class DBSemaphore implements Semaphore, Constants,
         }
         if (!isLockOwner(conn, lockName)) {
 
-            executeSQL(conn, lockName, expandedSQL, expandedInsertSQL);
+            executeSQL(conn, lockName, expandedSQL);
             
             if(log.isDebugEnabled()) {
                 log.debug(
@@ -180,42 +177,16 @@ public abstract class DBSemaphore implements Semaphore, Constants,
 
     protected void setSQL(String sql) {
         if ((sql != null) && (sql.trim().length() != 0)) {
-            this.sql = sql.trim();
-        }
-        
-        setExpandedSQL();
-    }
-
-    protected void setInsertSQL(String insertSql) {
-        if ((insertSql != null) && (insertSql.trim().length() != 0)) {
-            this.insertSql = insertSql.trim();
+            this.sql = sql;
         }
         
         setExpandedSQL();
     }
 
     private void setExpandedSQL() {
-        if (getTablePrefix() != null && getSchedName() != null && sql != null && insertSql != null) {
-            expandedSQL = Util.rtp(this.sql, getTablePrefix(), getSchedulerNameLiteral());
-            expandedInsertSQL = Util.rtp(this.insertSql, getTablePrefix(), getSchedulerNameLiteral());
+        if (getTablePrefix() != null) {
+            expandedSQL = Util.rtp(this.sql, getTablePrefix());
         }
-    }
-    
-    private String schedNameLiteral = null;
-    protected String getSchedulerNameLiteral() {
-        if(schedNameLiteral == null)
-            schedNameLiteral = "'" + schedName + "'";
-        return schedNameLiteral;
-    }
-
-    public String getSchedName() {
-        return schedName;
-    }
-
-    public void setSchedName(String schedName) {
-        this.schedName = schedName;
-        
-        setExpandedSQL();
     }
     
     protected String getTablePrefix() {

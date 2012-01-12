@@ -142,7 +142,6 @@ public class QuartzServer extends SchedulerListenerSupport {
      * error that was encountered.
      * </p>
      */
-    @Override
     public void schedulerError(String msg, SchedulerException cause) {
         System.err.println("*** " + msg);
         cause.printStackTrace();
@@ -154,7 +153,6 @@ public class QuartzServer extends SchedulerListenerSupport {
      * that it has shutdown.
      * </p>
      */
-    @Override
     public void schedulerShutdown() {
         System.out.println("\n*** The scheduler is now shutdown.");
         sched = null;

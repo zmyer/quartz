@@ -17,13 +17,6 @@
 
 package org.quartz.xml;
 
-import static org.quartz.CalendarIntervalScheduleBuilder.calendarIntervalSchedule;
-import static org.quartz.CronScheduleBuilder.cronSchedule;
-import static org.quartz.JobBuilder.newJob;
-import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
-import static org.quartz.TriggerBuilder.newTrigger;
-import static org.quartz.TriggerKey.triggerKey;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -56,23 +49,15 @@ import javax.xml.xpath.XPathException;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
-import org.quartz.CalendarIntervalScheduleBuilder;
-import org.quartz.CronScheduleBuilder;
-import org.quartz.Job;
+import org.quartz.CronTrigger;
 import org.quartz.JobDetail;
-import org.quartz.JobKey;
 import org.quartz.ObjectAlreadyExistsException;
-import org.quartz.ScheduleBuilder;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
-import org.quartz.SimpleScheduleBuilder;
 import org.quartz.SimpleTrigger;
 import org.quartz.Trigger;
-import org.quartz.TriggerKey;
-import org.quartz.DateBuilder.IntervalUnit;
-import org.quartz.impl.matchers.GroupMatcher;
 import org.quartz.spi.ClassLoadHelper;
-import org.quartz.spi.MutableTrigger;
+import org.quartz.utils.Key;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -88,7 +73,7 @@ import org.xml.sax.SAXParseException;
  * Parses an XML file that declares Jobs and their schedules (Triggers), and processes the related data.
  * 
  * The xml document must conform to the format defined in
- * "job_scheduling_data_2_0.xsd"
+ * "job_scheduling_data_1_8.xsd"
  * 
  * The same instance can be used again and again, however a single instance is not thread-safe.
  * 
@@ -109,9 +94,9 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
 
     public static final String QUARTZ_NS = "http://www.quartz-scheduler.org/xml/JobSchedulingData";
 
-    public static final String QUARTZ_SCHEMA_WEB_URL = "http://www.quartz-scheduler.org/xml/job_scheduling_data_2_0.xsd";
+    public static final String QUARTZ_SCHEMA_WEB_URL = "http://www.quartz-scheduler.org/xml/job_scheduling_data_1_8.xsd";
     
-    public static final String QUARTZ_XSD_PATH_IN_JAR = "org/quartz/xml/job_scheduling_data_2_0.xsd";
+    public static final String QUARTZ_XSD_PATH_IN_JAR = "org/quartz/xml/job_scheduling_data_1_8.xsd";
 
     public static final String QUARTZ_XML_DEFAULT_FILE_NAME = "quartz_data.xml";
 
@@ -140,18 +125,18 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
     // pre-processing commands
     protected List<String> jobGroupsToDelete = new LinkedList<String>();
     protected List<String> triggerGroupsToDelete = new LinkedList<String>();
-    protected List<JobKey> jobsToDelete = new LinkedList<JobKey>();
-    protected List<TriggerKey> triggersToDelete = new LinkedList<TriggerKey>();
+    protected List<Key> jobsToDelete = new LinkedList<Key>();
+    protected List<Key> triggersToDelete = new LinkedList<Key>();
 
     // scheduling commands
     protected List<JobDetail> loadedJobs = new LinkedList<JobDetail>();
-    protected List<MutableTrigger> loadedTriggers = new LinkedList<MutableTrigger>();
+    protected List<Trigger> loadedTriggers = new LinkedList<Trigger>();
     
     // directives
     private boolean overWriteExistingData = true;
     private boolean ignoreDuplicates = false;
 
-    protected Collection<Exception> validationExceptions = new ArrayList<Exception>();
+    protected Collection validationExceptions = new ArrayList();
 
     
     protected ClassLoadHelper classLoadHelper;
@@ -218,7 +203,7 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
               return XMLConstants.NULL_NS_URI;
           }
         
-          public Iterator<?> getPrefixes(String namespaceURI)
+          public Iterator getPrefixes(String namespaceURI)
           {
               // This method isn't necessary for XPath processing.
               throw new UnsupportedOperationException();
@@ -240,6 +225,8 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
         InputSource inputSource = null;
 
         InputStream is = null;
+
+        URL url = null;
 
         try {
             is = classLoadHelper.getResourceAsStream(QUARTZ_XSD_PATH_IN_JAR);
@@ -595,7 +582,7 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
             
             if(name == null)
                 throw new ParseException("Encountered a 'delete-job' command without a name specified.", -1);
-            jobsToDelete.add(new JobKey(name, group));
+            jobsToDelete.add(new Key(name, group));
         }
 
         NodeList deleteTriggerNodes = (NodeList) xpath.evaluate(
@@ -612,7 +599,7 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
             
             if(name == null)
                 throw new ParseException("Encountered a 'delete-trigger' command without a name specified.", -1);
-            triggersToDelete.add(new TriggerKey(name, group));
+            triggersToDelete.add(new Key(name, group));
         }
         
         //
@@ -656,20 +643,33 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
             String jobGroup = getTrimmedToNullString(xpath, "q:group", jobDetailNode);
             String jobDescription = getTrimmedToNullString(xpath, "q:description", jobDetailNode);
             String jobClassName = getTrimmedToNullString(xpath, "q:job-class", jobDetailNode);
+            t = getTrimmedToNullString(xpath, "q:volatility", jobDetailNode);
+            boolean jobVolatility = (t != null) && t.equals("true");
             t = getTrimmedToNullString(xpath, "q:durability", jobDetailNode);
             boolean jobDurability = (t != null) && t.equals("true");
             t = getTrimmedToNullString(xpath, "q:recover", jobDetailNode);
             boolean jobRecoveryRequested = (t != null) && t.equals("true");
 
-            Class<? extends Job> jobClass = classLoadHelper.loadClass(jobClassName, Job.class);
+            Class jobClass = classLoadHelper.loadClass(jobClassName);
 
-            JobDetail jobDetail = newJob(jobClass)
-                .withIdentity(jobName, jobGroup)
-                .withDescription(jobDescription)
-                .storeDurably(jobDurability)
-                .requestRecovery(jobRecoveryRequested)
-                .build();
-            
+            JobDetail jobDetail = new JobDetail(jobName, jobGroup,
+                    jobClass, jobVolatility, jobDurability,
+                    jobRecoveryRequested);
+            jobDetail.setDescription(jobDescription);
+
+            NodeList jobListenerEntries = (NodeList) xpath.evaluate(
+                    "q:job-listener-ref", jobDetailNode,
+                    XPathConstants.NODESET);
+            for (int j = 0; j < jobListenerEntries.getLength(); j++) {
+                Node listenerRefNode = jobListenerEntries.item(j);
+                String ref = listenerRefNode.getTextContent();
+                if(ref != null && (ref = ref.trim()).length() == 0)
+                    ref = null;
+                if(ref == null)
+                    continue;
+                jobDetail.addJobListener(ref);
+            }
+
             NodeList jobDataEntries = (NodeList) xpath.evaluate(
                     "q:job-data-map/q:entry", jobDetailNode,
                     XPathConstants.NODESET);
@@ -702,30 +702,20 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
             String triggerGroup = getTrimmedToNullString(xpath, "q:group", triggerNode);
             String triggerDescription = getTrimmedToNullString(xpath, "q:description", triggerNode);
             String triggerMisfireInstructionConst = getTrimmedToNullString(xpath, "q:misfire-instruction", triggerNode);
-            String triggerPriorityString = getTrimmedToNullString(xpath, "q:priority", triggerNode);
             String triggerCalendarRef = getTrimmedToNullString(xpath, "q:calendar-name", triggerNode);
             String triggerJobName = getTrimmedToNullString(xpath, "q:job-name", triggerNode);
             String triggerJobGroup = getTrimmedToNullString(xpath, "q:job-group", triggerNode);
+            String t = getTrimmedToNullString(xpath, "q:volatility", triggerNode);
+            boolean triggerVolatility = (t != null) && t.equals("true");
 
-            int triggerPriority = Trigger.DEFAULT_PRIORITY;
-            if(triggerPriorityString != null)
-                triggerPriority = Integer.valueOf(triggerPriorityString);
-            
             String startTimeString = getTrimmedToNullString(xpath, "q:start-time", triggerNode);
-            String startTimeFutureSecsString = getTrimmedToNullString(xpath, "q:start-time-seconds-in-future", triggerNode);
             String endTimeString = getTrimmedToNullString(xpath, "q:end-time", triggerNode);
 
-            Date triggerStartTime = null;
-            if(startTimeFutureSecsString != null)
-                triggerStartTime = new Date(System.currentTimeMillis() + (Long.valueOf(startTimeFutureSecsString) * 1000L));
-            else 
-                triggerStartTime = (startTimeString == null || startTimeString.length() == 0 ? new Date() : dateFormat.parse(startTimeString));
+            Date triggerStartTime = startTimeString == null || startTimeString.length() == 0 ? new Date() : dateFormat.parse(startTimeString);
             Date triggerEndTime = endTimeString == null || endTimeString.length() == 0 ? null : dateFormat.parse(endTimeString);
 
-            TriggerKey triggerKey = triggerKey(triggerName, triggerGroup);
-            
-            ScheduleBuilder<?> sched = null;
-            
+            Trigger trigger = null;
+
             if (triggerNode.getNodeName().equals("simple")) {
                 String repeatCountString = getTrimmedToNullString(xpath, "q:repeat-count", triggerNode);
                 String repeatIntervalString = getTrimmedToNullString(xpath, "q:repeat-interval", triggerNode);
@@ -733,84 +723,40 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
                 int repeatCount = repeatCountString == null ? SimpleTrigger.REPEAT_INDEFINITELY : Integer.parseInt(repeatCountString);
                 long repeatInterval = repeatIntervalString == null ? 0 : Long.parseLong(repeatIntervalString);
 
-                sched = simpleSchedule()
-                    .withIntervalInMilliseconds(repeatInterval)
-                    .withRepeatCount(repeatCount);
-                
-                if (triggerMisfireInstructionConst != null && triggerMisfireInstructionConst.length() != 0) {
-                    if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_FIRE_NOW"))
-                        ((SimpleScheduleBuilder)sched).withMisfireHandlingInstructionFireNow();
-                    else if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_EXISTING_COUNT"))
-                        ((SimpleScheduleBuilder)sched).withMisfireHandlingInstructionNextWithExistingCount();
-                    else if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_REMAINING_COUNT"))
-                        ((SimpleScheduleBuilder)sched).withMisfireHandlingInstructionNextWithRemainingCount();
-                    else if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_EXISTING_REPEAT_COUNT"))
-                        ((SimpleScheduleBuilder)sched).withMisfireHandlingInstructionNowWithExistingCount();
-                    else if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT"))
-                        ((SimpleScheduleBuilder)sched).withMisfireHandlingInstructionNowWithRemainingCount();
-                    else if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_SMART_POLICY")) {
-                        // do nothing.... (smart policy is default)
-                    }
-                    else
-                        throw new ParseException("Unexpected/Unhandlable Misfire Instruction encountered '" + triggerMisfireInstructionConst + "', for trigger: " + triggerKey, -1);
-                }
+                trigger = new SimpleTrigger(triggerName, triggerGroup,
+                        triggerJobName, triggerJobGroup,
+                        triggerStartTime, triggerEndTime, 
+                        repeatCount, repeatInterval);
             } else if (triggerNode.getNodeName().equals("cron")) {
                 String cronExpression = getTrimmedToNullString(xpath, "q:cron-expression", triggerNode);
                 String timezoneString = getTrimmedToNullString(xpath, "q:time-zone", triggerNode);
 
+                
                 TimeZone tz = timezoneString == null ? null : TimeZone.getTimeZone(timezoneString);
 
-                sched = cronSchedule(cronExpression)
-                    .inTimeZone(tz);
-
-                if (triggerMisfireInstructionConst != null && triggerMisfireInstructionConst.length() != 0) {
-                    if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_DO_NOTHING"))
-                        ((CronScheduleBuilder)sched).withMisfireHandlingInstructionDoNothing();
-                    else if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_FIRE_ONCE_NOW"))
-                        ((CronScheduleBuilder)sched).withMisfireHandlingInstructionFireAndProceed();
-                    else if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_SMART_POLICY")) {
-                        // do nothing.... (smart policy is default)
-                    }
-                    else
-                        throw new ParseException("Unexpected/Unhandlable Misfire Instruction encountered '" + triggerMisfireInstructionConst + "', for trigger: " + triggerKey, -1);
-                }
-            } else if (triggerNode.getNodeName().equals("calendar-interval")) {
-                String repeatIntervalString = getTrimmedToNullString(xpath, "q:repeat-interval", triggerNode);
-                String repeatUnitString = getTrimmedToNullString(xpath, "q:repeat-interval-unit", triggerNode);
-
-                int repeatInterval = Integer.parseInt(repeatIntervalString);
-
-                IntervalUnit repeatUnit = IntervalUnit.valueOf(repeatUnitString);
-
-                sched = calendarIntervalSchedule()
-                    .withInterval(repeatInterval, repeatUnit);
-
-                if (triggerMisfireInstructionConst != null && triggerMisfireInstructionConst.length() != 0) {
-                    if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_DO_NOTHING"))
-                        ((CalendarIntervalScheduleBuilder)sched).withMisfireHandlingInstructionDoNothing();
-                    else if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_FIRE_ONCE_NOW"))
-                        ((CalendarIntervalScheduleBuilder)sched).withMisfireHandlingInstructionFireAndProceed();
-                    else if(triggerMisfireInstructionConst.equals("MISFIRE_INSTRUCTION_SMART_POLICY")) {
-                        // do nothing.... (smart policy is default)
-                    }
-                    else
-                        throw new ParseException("Unexpected/Unhandlable Misfire Instruction encountered '" + triggerMisfireInstructionConst + "', for trigger: " + triggerKey, -1);
-                }
+                trigger = new CronTrigger(triggerName, triggerGroup,
+                        triggerJobName, triggerJobGroup,
+                        triggerStartTime, triggerEndTime,
+                        cronExpression, tz);
             } else {
                 throw new ParseException("Unknown trigger type: " + triggerNode.getNodeName(), -1);
             }
 
-            
-            MutableTrigger trigger = (MutableTrigger) newTrigger()
-                .withIdentity(triggerName, triggerGroup)
-                .withDescription(triggerDescription)
-                .forJob(triggerJobName, triggerJobGroup)
-                .startAt(triggerStartTime)
-                .endAt(triggerEndTime)
-                .withPriority(triggerPriority)
-                .modifiedByCalendar(triggerCalendarRef)
-                .withSchedule(sched)
-                .build();
+            trigger.setVolatility(triggerVolatility);
+            trigger.setDescription(triggerDescription);
+            trigger.setCalendarName(triggerCalendarRef);
+
+            if (triggerMisfireInstructionConst != null && triggerMisfireInstructionConst.length() != 0) {
+                Class clazz = trigger.getClass();
+                java.lang.reflect.Field field;
+                try {
+                    field = clazz.getField(triggerMisfireInstructionConst);
+                    int misfireInst = field.getInt(trigger);
+                    trigger.setMisfireInstruction(misfireInst);
+                } catch (Exception e) {
+                    throw new ParseException("Unexpected/Unhandlable Misfire Instruction encountered '" + triggerMisfireInstructionConst + "', for trigger: " + trigger.getFullName(), -1);
+                }
+            }
 
             NodeList jobDataEntries = (NodeList) xpath.evaluate(
                     "q:job-data-map/q:entry", triggerNode,
@@ -830,8 +776,8 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
         }
     }
     
-    protected String getTrimmedToNullString(XPath xpathToElement, String elementName, Node parentNode) throws XPathExpressionException {
-        String str = (String) xpathToElement.evaluate(elementName,
+    protected String getTrimmedToNullString(XPath xpath, String elementName, Node parentNode) throws XPathExpressionException {
+        String str = (String) xpath.evaluate(elementName,
                 parentNode, XPathConstants.STRING);
         
         if(str != null)
@@ -843,9 +789,9 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
         return str;
     }
 
-    protected Boolean getBoolean(XPath xpathToElement, String elementName, Document document) throws XPathExpressionException {
+    protected Boolean getBoolean(XPath xpath, String elementName, Document document) throws XPathExpressionException {
         
-        Node directive = (Node) xpathToElement.evaluate(elementName, document, XPathConstants.NODE);
+        Node directive = (Node) xpath.evaluate(elementName, document, XPathConstants.NODE);
 
         if(directive == null || directive.getTextContent() == null)
             return null;
@@ -860,8 +806,7 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
     /**
      * Process the xml file in the default location, and schedule all of the
      * jobs defined within it.
-     * 
-     * <p>Note that we will set overWriteExistingJobs after the default xml is parsed. 
+     *  
      */
     public void processFileAndScheduleJobs(Scheduler sched,
             boolean overWriteExistingJobs) throws SchedulerException, Exception {
@@ -914,7 +859,7 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
      * 
      * @return a <code>List</code> of triggers.
      */
-    protected List<MutableTrigger> getLoadedTriggers() {
+    protected List<Trigger> getLoadedTriggers() {
         return Collections.unmodifiableList(loadedTriggers);
     }
 
@@ -933,19 +878,19 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
         loadedJobs.add(job);
     }
     
-    protected void addTriggerToSchedule(MutableTrigger trigger) {
+    protected void addTriggerToSchedule(Trigger trigger) {
         loadedTriggers.add(trigger);
     }
 
-    private Map<JobKey, List<MutableTrigger>> buildTriggersByFQJobNameMap(List<MutableTrigger> triggers) {
+    private Map<String, List<Trigger>> buildTriggersByFQJobNameMap(List<Trigger> triggers) {
         
-        Map<JobKey, List<MutableTrigger>> triggersByFQJobName = new HashMap<JobKey, List<MutableTrigger>>();
+        Map<String, List<Trigger>> triggersByFQJobName = new HashMap<String, List<Trigger>>();
         
-        for(MutableTrigger trigger: triggers) {
-            List<MutableTrigger> triggersOfJob = triggersByFQJobName.get(trigger.getJobKey());
+        for(Trigger trigger: triggers) {
+            List<Trigger> triggersOfJob = triggersByFQJobName.get(trigger.getFullJobName());
             if(triggersOfJob == null) {
-                triggersOfJob = new LinkedList<MutableTrigger>();
-                triggersByFQJobName.put(trigger.getJobKey(), triggersOfJob);
+                triggersOfJob = new LinkedList<Trigger>();
+                triggersByFQJobName.put(trigger.getFullJobName(), triggersOfJob);
             }
             triggersOfJob.add(trigger);
         }
@@ -961,8 +906,8 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
                 log.info("Deleting all jobs in ALL groups.");
                 for (String groupName : scheduler.getJobGroupNames()) {
                     if (!jobGroupsToNeverDelete.contains(groupName)) {
-                        for (JobKey key : scheduler.getJobKeys(GroupMatcher.jobGroupEquals(groupName))) {
-                            scheduler.deleteJob(key);
+                        for (String jobName : scheduler.getJobNames(groupName)) {
+                            scheduler.deleteJob(jobName, groupName);
                         }
                     }
                 }
@@ -970,8 +915,8 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
             else {
                 if(!jobGroupsToNeverDelete.contains(group)) {
                     log.info("Deleting all jobs in group: {}", group);
-                    for (JobKey key : scheduler.getJobKeys(GroupMatcher.jobGroupEquals(group))) {
-                        scheduler.deleteJob(key);
+                    for (String jobName : scheduler.getJobNames(group)) {
+                        scheduler.deleteJob(jobName, group);
                     }
                 }
             }
@@ -982,8 +927,8 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
                 log.info("Deleting all triggers in ALL groups.");
                 for (String groupName : scheduler.getTriggerGroupNames()) {
                     if (!triggerGroupsToNeverDelete.contains(groupName)) {
-                        for (TriggerKey key : scheduler.getTriggerKeys(GroupMatcher.triggerGroupEquals(groupName))) {
-                            scheduler.unscheduleJob(key);
+                        for (String triggerName : scheduler.getTriggerNames(groupName)) {
+                            scheduler.unscheduleJob(triggerName, groupName);
                         }
                     }
                 }
@@ -991,24 +936,24 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
             else {
                 if(!triggerGroupsToNeverDelete.contains(group)) {
                     log.info("Deleting all triggers in group: {}", group);
-                    for (TriggerKey key : scheduler.getTriggerKeys(GroupMatcher.triggerGroupEquals(group))) {
-                        scheduler.unscheduleJob(key);
+                    for (String triggerName : scheduler.getTriggerNames(group)) {
+                        scheduler.unscheduleJob(triggerName, group);
                     }
                 }
             }
         }
         
-        for(JobKey key: jobsToDelete) {
+        for(Key key: jobsToDelete) {
             if(!jobGroupsToNeverDelete.contains(key.getGroup())) {
                 log.info("Deleting job: {}", key);
-                scheduler.deleteJob(key);
+                scheduler.deleteJob(key.getName(), key.getGroup());
             } 
         }
         
-        for(TriggerKey key: triggersToDelete) {
+        for(Key key: triggersToDelete) {
             if(!triggerGroupsToNeverDelete.contains(key.getGroup())) {
                 log.info("Deleting trigger: {}", key);
-                scheduler.unscheduleJob(key);
+                scheduler.unscheduleJob(key.getName(), key.getGroup());
             }
         }
     }
@@ -1025,12 +970,12 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
     protected void scheduleJobs(Scheduler sched)
         throws SchedulerException {
         
-        List<JobDetail> jobs = new LinkedList<JobDetail>(getLoadedJobs());
-        List<MutableTrigger> triggers = new LinkedList<MutableTrigger>( getLoadedTriggers());
+        List<JobDetail> jobs = new LinkedList(getLoadedJobs());
+        List<Trigger> triggers = new LinkedList(getLoadedTriggers());
         
         log.info("Adding " + jobs.size() + " jobs, " + triggers.size() + " triggers.");
         
-        Map<JobKey, List<MutableTrigger>> triggersByFQJobName = buildTriggersByFQJobNameMap(triggers);
+        Map<String, List<Trigger>> triggersByFQJobName = buildTriggersByFQJobNameMap(triggers);
         
         // add each job, and it's associated triggers
         Iterator<JobDetail> itr = jobs.iterator();
@@ -1038,11 +983,11 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
             JobDetail detail = itr.next();
             itr.remove(); // remove jobs as we handle them...
             
-            JobDetail dupeJ = sched.getJobDetail(detail.getKey());
+            JobDetail dupeJ = sched.getJobDetail(detail.getName(), detail.getGroup());
 
             if ((dupeJ != null)) {
                 if(!isOverWriteExistingData() && isIgnoreDuplicates()) {
-                    log.info("Not overwriting existing job: " + dupeJ.getKey());
+                    log.info("Not overwriting existing job: " + dupeJ.getFullName());
                     continue; // just ignore the entry
                 }
                 if(!isOverWriteExistingData() && !isIgnoreDuplicates()) {
@@ -1051,71 +996,70 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
             }
             
             if (dupeJ != null) {
-                log.info("Replacing job: " + detail.getKey());
+                log.info("Replacing job: " + detail.getFullName());
             } else {
-                log.info("Adding job: " + detail.getKey());
+                log.info("Adding job: " + detail.getFullName());
             }
             
-            List<MutableTrigger> triggersOfJob = triggersByFQJobName.get(detail.getKey());
+            List<Trigger> triggersOfJob = triggersByFQJobName.get(detail.getFullName());
             
             if (!detail.isDurable() && (triggersOfJob == null || triggersOfJob.size() == 0)) {
                 if (dupeJ == null) {
                     throw new SchedulerException(
                         "A new job defined without any triggers must be durable: " + 
-                        detail.getKey());
+                        detail.getFullName());
                 }
                 
                 if ((dupeJ.isDurable() && 
                     (sched.getTriggersOfJob(
-                        detail.getKey()).size() == 0))) {
+                        detail.getName(), detail.getGroup()).length == 0))) {
                     throw new SchedulerException(
                         "Can't change existing durable job without triggers to non-durable: " + 
-                        detail.getKey());
+                        detail.getFullName());
                 }
             }
-            
             
             if(dupeJ != null || detail.isDurable()) {
                 sched.addJob(detail, true); // add the job if a replacement or durable
             }
             else {
                 boolean addJobWithFirstSchedule = true;
-
+            
                 // Add triggers related to the job...
-                Iterator<MutableTrigger> titr = triggersOfJob.iterator();
+                Iterator<Trigger> titr = triggersOfJob.iterator();
                 while(titr.hasNext()) {
-                    MutableTrigger trigger = titr.next(); 
+                    Trigger trigger = titr.next(); 
                     triggers.remove(trigger);  // remove triggers as we handle them...
     
                     if(trigger.getStartTime() == null) {
                         trigger.setStartTime(new Date());
                     }
                     
-                    Trigger dupeT = sched.getTrigger(trigger.getKey());
+                    Trigger dupeT = sched.getTrigger(trigger.getName(), trigger.getGroup());
                     if (dupeT != null) {
                         if(isOverWriteExistingData()) {
                             if (log.isDebugEnabled()) {
                                 log.debug(
-                                    "Rescheduling job: " + trigger.getJobKey() + " with updated trigger: " + trigger.getKey());
+                                    "Rescheduling job: " + trigger.getFullJobName() + " with updated trigger: " + trigger.getFullName());
                             }
                         }
                         else if(isIgnoreDuplicates()) {
-                            log.info("Not overwriting existing trigger: " + dupeT.getKey());
+                            log.info("Not overwriting existing trigger: " + dupeT.getFullName());
                             continue; // just ignore the trigger (and possibly job)
                         }
                         else {
                             throw new ObjectAlreadyExistsException(trigger);
                         }
                         
-                        if(!dupeT.getJobKey().equals(trigger.getJobKey())) {
-                            log.warn("Possibly duplicately named ({}) triggers in jobs xml file! ", trigger.getKey());
+                        if(!dupeT.getJobGroup().equals(trigger.getJobGroup()) || !dupeT.getJobName().equals(trigger.getJobName())) {
+                            log.warn("Possibly duplicately named ({}) triggers in jobs xml file! ", trigger.getFullName());
                         }
                         
-                        sched.rescheduleJob(trigger.getKey(), trigger);
+                        sched.rescheduleJob(trigger.getName(), trigger.getGroup(), trigger);
                     } else {
                         if (log.isDebugEnabled()) {
                             log.debug(
-                                "Scheduling job: " + trigger.getJobKey() + " with trigger: " + trigger.getKey());
+                                "Scheduling job: " + trigger.getFullJobName() + " with trigger: " + trigger.getFullName());
                         }
     
                         try {
@@ -1129,14 +1073,14 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
                         } catch (ObjectAlreadyExistsException e) {
                             if (log.isDebugEnabled()) {
                                 log.debug(
-                                    "Adding trigger: " + trigger.getKey() + " for job: " + detail.getKey() + 
+                                    "Adding trigger: " + trigger.getFullName() + " for job: " + detail.getFullName() + 
                                     " failed because the trigger already existed.  " +
                                     "This is likely due to a race condition between multiple instances " + 
                                     "in the cluster.  Will try to reschedule instead.");
                             }
                             
                             // Let's try one more time as reschedule.
-                            sched.rescheduleJob(trigger.getKey(), trigger);
+                            sched.rescheduleJob(trigger.getName(), trigger.getGroup(), trigger);
                         }
                     }
                 }
@@ -1144,37 +1088,37 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
         }
         
         // add triggers that weren't associated with a new job... (those we already handled were removed above)
-        for(MutableTrigger trigger: triggers) {
+        for(Trigger trigger: triggers) {
             
             if(trigger.getStartTime() == null) {
                 trigger.setStartTime(new Date());
             }
             
-            Trigger dupeT = sched.getTrigger(trigger.getKey());
+            Trigger dupeT = sched.getTrigger(trigger.getName(), trigger.getGroup());
             if (dupeT != null) {
                 if(isOverWriteExistingData()) {
                     if (log.isDebugEnabled()) {
                         log.debug(
-                            "Rescheduling job: " + trigger.getJobKey() + " with updated trigger: " + trigger.getKey());
+                            "Rescheduling job: " + trigger.getFullJobName() + " with updated trigger: " + trigger.getFullName());
                     }
                 }
                 else if(isIgnoreDuplicates()) {
-                    log.info("Not overwriting existing trigger: " + dupeT.getKey());
+                    log.info("Not overwriting existing trigger: " + dupeT.getFullName());
                     continue; // just ignore the trigger 
                 }
                 else {
                     throw new ObjectAlreadyExistsException(trigger);
                 }
                 
-                if(!dupeT.getJobKey().equals(trigger.getJobKey())) {
-                    log.warn("Possibly duplicately named ({}) triggers in jobs xml file! ", trigger.getKey());
+                if(!dupeT.getJobGroup().equals(trigger.getJobGroup()) || !dupeT.getJobName().equals(trigger.getJobName())) {
+                    log.warn("Possibly duplicately named ({}) triggers in jobs xml file! ", trigger.getFullName());
                 }
                 
-                sched.rescheduleJob(trigger.getKey(), trigger);
+                sched.rescheduleJob(trigger.getName(), trigger.getGroup(), trigger);
             } else {
                 if (log.isDebugEnabled()) {
                     log.debug(
-                        "Scheduling job: " + trigger.getJobKey() + " with trigger: " + trigger.getKey());
+                        "Scheduling job: " + trigger.getFullJobName() + " with trigger: " + trigger.getFullName());
                 }
 
                 try {
@@ -1182,17 +1126,18 @@ public class XMLSchedulingDataProcessor implements ErrorHandler {
                 } catch (ObjectAlreadyExistsException e) {
                     if (log.isDebugEnabled()) {
                         log.debug(
-                            "Adding trigger: " + trigger.getKey() + " for job: " +trigger.getJobKey() + 
+                            "Adding trigger: " + trigger.getFullName() + " for job: " +trigger.getFullJobName() + 
                             " failed because the trigger already existed.  " +
                             "This is likely due to a race condition between multiple instances " + 
                             "in the cluster.  Will try to reschedule instead.");
                     }
-
-                    // Let's rescheduleJob one more time.
-                    sched.rescheduleJob(trigger.getKey(), trigger);
+                    
+                    // Let's try one more time as reschedule.
+                    sched.rescheduleJob(trigger.getName(), trigger.getGroup(), trigger);
                 }
             }
         }
+
     }
 
     /**

@@ -19,15 +19,12 @@ package org.quartz.examples.example4;
 
 import java.util.Date;
 
-import org.quartz.DisallowConcurrentExecution;
-import org.quartz.Job;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import org.quartz.JobKey;
-import org.quartz.PersistJobDataAfterExecution;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.quartz.StatefulJob;
 
 /**
  * <p>
@@ -37,9 +34,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Bill Kratzer
  */
-@PersistJobDataAfterExecution
-@DisallowConcurrentExecution
-public class ColorJob implements Job {
+public class ColorJob implements StatefulJob {
 
     private static Logger _log = LoggerFactory.getLogger(ColorJob.class);
     
@@ -54,7 +49,7 @@ public class ColorJob implements Job {
 
     /**
      * <p>
-     * Empty constructor for job initialization
+     * Empty constructor for job initilization
      * </p>
      * <p>
      * Quartz requires a public empty constructor so that the
@@ -79,13 +74,13 @@ public class ColorJob implements Job {
 
         // This job simply prints out its job name and the
         // date and time that it is running
-        JobKey jobKey = context.getJobDetail().getKey();
+        String jobName = context.getJobDetail().getFullName();
         
         // Grab and print passed parameters
         JobDataMap data = context.getJobDetail().getJobDataMap();
         String favoriteColor = data.getString(FAVORITE_COLOR);
         int count = data.getInt(EXECUTION_COUNT);
-        _log.info("ColorJob: " + jobKey + " executing at " + new Date() + "\n" +
+        _log.info("ColorJob: " + jobName + " executing at " + new Date() + "\n" +
             "  favorite color is " + favoriteColor + "\n" + 
             "  execution count (from job map) is " + count + "\n" + 
             "  execution count (from job member variable) is " + _counter);

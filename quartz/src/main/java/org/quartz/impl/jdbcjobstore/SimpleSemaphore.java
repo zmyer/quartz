@@ -40,9 +40,9 @@ public class SimpleSemaphore implements Semaphore {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    ThreadLocal<HashSet<String>> lockOwners = new ThreadLocal<HashSet<String>>();
+    ThreadLocal lockOwners = new ThreadLocal();
 
-    HashSet<String> locks = new HashSet<String>();
+    HashSet locks = new HashSet();
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -58,10 +58,10 @@ public class SimpleSemaphore implements Semaphore {
         return log;
     }
 
-    private HashSet<String> getThreadLocks() {
-        HashSet<String> threadLocks = lockOwners.get();
+    private HashSet getThreadLocks() {
+        HashSet threadLocks = (HashSet) lockOwners.get();
         if (threadLocks == null) {
-            threadLocks = new HashSet<String>();
+            threadLocks = new HashSet();
             lockOwners.set(threadLocks);
         }
         return threadLocks;
@@ -76,6 +76,8 @@ public class SimpleSemaphore implements Semaphore {
     public synchronized boolean obtainLock(Connection conn, String lockName) {
 
         lockName = lockName.intern();
+
+        Logger log = getLog();
 
         if(log.isDebugEnabled()) {
             log.debug(

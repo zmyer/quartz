@@ -6,6 +6,8 @@ import java.util.Calendar;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 
+import org.quartz.CronExpression;
+
 /**
  * This implementation of the Calendar excludes (or includes - see below) a 
  * specified time range each day. For example, you could use this calendar to 
@@ -448,7 +450,6 @@ public class DailyCalendar extends BaseCalendar {
                      rangeEndingTimeInMillis);
     }
 
-    @Override
     public Object clone() {
         DailyCalendar clone = (DailyCalendar) super.clone();
         return clone;
@@ -462,7 +463,6 @@ public class DailyCalendar extends BaseCalendar {
      * @return a boolean indicating whether the specified time is 'included' by
      *         the <CODE>BaseCalendar</CODE>
      */
-    @Override
     public boolean isTimeIncluded(long timeInMillis) {        
         if ((getBaseCalendar() != null) && 
                 (getBaseCalendar().isTimeIncluded(timeInMillis) == false)) {
@@ -496,7 +496,6 @@ public class DailyCalendar extends BaseCalendar {
      * @return the time in milliseconds representing the next time included
      *         after the specified time.
      */
-    @Override
     public long getNextIncludedTime(long timeInMillis) {
         long nextIncludedTime = timeInMillis + oneMillis;
         
@@ -614,7 +613,6 @@ public class DailyCalendar extends BaseCalendar {
      * 
      * @return the properteis of the DailyCalendar in a String format
      */
-    @Override
     public String toString() {
         NumberFormat numberFormatter = NumberFormat.getNumberInstance();
         numberFormatter.setMaximumFractionDigits(0);
@@ -653,7 +651,7 @@ public class DailyCalendar extends BaseCalendar {
      * Helper method to split the given string by the given delimiter.
      */
     private String[] split(String string, String delim) {
-        ArrayList<String> result = new ArrayList<String>();
+        ArrayList result = new ArrayList();
         
         StringTokenizer stringTokenizer = new StringTokenizer(string, delim);
         while (stringTokenizer.hasMoreTokens()) {
@@ -675,16 +673,16 @@ public class DailyCalendar extends BaseCalendar {
     public void setTimeRange(String rangeStartingTimeString,
                               String rangeEndingTimeString) {
         String[] rangeStartingTime;
-        int rStartingHourOfDay;
-        int rStartingMinute;
-        int rStartingSecond;
-        int rStartingMillis;
+        int rangeStartingHourOfDay;
+        int rangeStartingMinute;
+        int rangeStartingSecond;
+        int rangeStartingMillis;
         
-        String[] rEndingTime;
-        int rEndingHourOfDay;
-        int rEndingMinute;
-        int rEndingSecond;
-        int rEndingMillis;
+        String[] rangeEndingTime;
+        int rangeEndingHourOfDay;
+        int rangeEndingMinute;
+        int rangeEndingSecond;
+        int rangeEndingMillis;
         
         rangeStartingTime = split(rangeStartingTimeString, colon);
         
@@ -693,47 +691,47 @@ public class DailyCalendar extends BaseCalendar {
                     rangeStartingTimeString + "'");
         }
         
-        rStartingHourOfDay = Integer.parseInt(rangeStartingTime[0]);
-        rStartingMinute = Integer.parseInt(rangeStartingTime[1]);
+        rangeStartingHourOfDay = Integer.parseInt(rangeStartingTime[0]);
+        rangeStartingMinute = Integer.parseInt(rangeStartingTime[1]);
         if (rangeStartingTime.length > 2) {
-            rStartingSecond = Integer.parseInt(rangeStartingTime[2]);
+            rangeStartingSecond = Integer.parseInt(rangeStartingTime[2]);
         } else {
-            rStartingSecond = 0;
+            rangeStartingSecond = 0;
         }
         if (rangeStartingTime.length == 4) {
-            rStartingMillis = Integer.parseInt(rangeStartingTime[3]);
+            rangeStartingMillis = Integer.parseInt(rangeStartingTime[3]);
         } else {
-            rStartingMillis = 0;
+            rangeStartingMillis = 0;
         }
         
-        rEndingTime = split(rangeEndingTimeString, colon);
+        rangeEndingTime = split(rangeEndingTimeString, colon);
 
-        if ((rEndingTime.length < 2) || (rEndingTime.length > 4)) {
+        if ((rangeEndingTime.length < 2) || (rangeEndingTime.length > 4)) {
             throw new IllegalArgumentException("Invalid time string '" + 
                     rangeEndingTimeString + "'");
         }
         
-        rEndingHourOfDay = Integer.parseInt(rEndingTime[0]);
-        rEndingMinute = Integer.parseInt(rEndingTime[1]);
-        if (rEndingTime.length > 2) {
-            rEndingSecond = Integer.parseInt(rEndingTime[2]);
+        rangeEndingHourOfDay = Integer.parseInt(rangeEndingTime[0]);
+        rangeEndingMinute = Integer.parseInt(rangeEndingTime[1]);
+        if (rangeEndingTime.length > 2) {
+            rangeEndingSecond = Integer.parseInt(rangeEndingTime[2]);
         } else {
-            rEndingSecond = 0;
+            rangeEndingSecond = 0;
         }
-        if (rEndingTime.length == 4) {
-            rEndingMillis = Integer.parseInt(rEndingTime[3]);
+        if (rangeEndingTime.length == 4) {
+            rangeEndingMillis = Integer.parseInt(rangeEndingTime[3]);
         } else {
-            rEndingMillis = 0;
+            rangeEndingMillis = 0;
         }
         
-        setTimeRange(rStartingHourOfDay,
-                     rStartingMinute,
-                     rStartingSecond,
-                     rStartingMillis,
-                     rEndingHourOfDay,
-                     rEndingMinute,
-                     rEndingSecond,
-                     rEndingMillis);
+        setTimeRange(rangeStartingHourOfDay,
+                     rangeStartingMinute,
+                     rangeStartingSecond,
+                     rangeStartingMillis,
+                     rangeEndingHourOfDay,
+                     rangeEndingMinute,
+                     rangeEndingSecond,
+                     rangeEndingMillis);
     }
 
     /**

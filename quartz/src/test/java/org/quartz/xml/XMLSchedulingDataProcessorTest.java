@@ -1,9 +1,5 @@
 package org.quartz.xml;
 
-import static org.quartz.JobBuilder.newJob;
-import static org.quartz.SimpleScheduleBuilder.repeatHourlyForever;
-import static org.quartz.TriggerBuilder.newTrigger;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -11,16 +7,13 @@ import java.io.InputStream;
 
 import junit.framework.TestCase;
 
-import org.quartz.Job;
 import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-import org.quartz.JobKey;
 import org.quartz.ObjectAlreadyExistsException;
 import org.quartz.Scheduler;
+import org.quartz.SimpleTrigger;
 import org.quartz.Trigger;
 import org.quartz.impl.StdSchedulerFactory;
-import org.quartz.impl.matchers.GroupMatcher;
+import org.quartz.jobs.NoOpJob;
 import org.quartz.simpl.CascadingClassLoadHelper;
 import org.quartz.spi.ClassLoadHelper;
 
@@ -47,11 +40,12 @@ public class XMLSchedulingDataProcessorTest extends TestCase {
 		Scheduler scheduler = null;
 		try {
 			StdSchedulerFactory factory = new StdSchedulerFactory("org/quartz/xml/quartz-test.properties");
-			scheduler = factory.getScheduler();
+			scheduler = StdSchedulerFactory.getDefaultScheduler();
 			
 			// Let's setup a fixture job data that we know test is not going modify it.
-			JobDetail job = newJob(MyJob.class).withIdentity("job1").usingJobData("foo", "dont_chg_me").build();
-			Trigger trigger = newTrigger().withIdentity("job1").withSchedule(repeatHourlyForever()).build();
+			JobDetail job = new JobDetail("job1", NoOpJob.class);
+			job.getJobDataMap().put("foo", "dont_chg_me");
+			Trigger trigger = new SimpleTrigger("job1", SimpleTrigger.REPEAT_INDEFINITELY, 60 * 60 * 1000);
 			scheduler.scheduleJob(job, trigger);			
 			
 			ClassLoadHelper clhelper = new CascadingClassLoadHelper();
@@ -65,10 +59,10 @@ public class XMLSchedulingDataProcessorTest extends TestCase {
 			}
 			
 			// We should still have what we start with.
-			assertEquals(1, scheduler.getJobKeys(GroupMatcher.jobGroupEquals("DEFAULT")).size());
-			assertEquals(1, scheduler.getTriggerKeys(GroupMatcher.triggerGroupEquals("DEFAULT")).size());
+			assertEquals(1, scheduler.getJobNames("DEFAULT").length);
+			assertEquals(1, scheduler.getTriggerNames("DEFAULT").length);
 			
-			job = scheduler.getJobDetail(JobKey.jobKey("job1"));
+			job = scheduler.getJobDetail("job1", "DEFAULT");
 			String fooValue = job.getJobDataMap().getString("foo");
 			assertEquals("dont_chg_me", fooValue);
 		} finally {
@@ -110,15 +104,16 @@ public class XMLSchedulingDataProcessorTest extends TestCase {
 		Scheduler scheduler = null;
 		try {
 			StdSchedulerFactory factory = new StdSchedulerFactory("org/quartz/xml/quartz-test.properties");
-			scheduler = factory.getScheduler();
+			scheduler = StdSchedulerFactory.getDefaultScheduler();
 			
 			// Setup existing job with same names as in xml data.
-			JobDetail job = newJob(MyJob.class).withIdentity("job1").build();
-			Trigger trigger = newTrigger().withIdentity("job1").withSchedule(repeatHourlyForever()).build();
+			JobDetail job = new JobDetail("job1", NoOpJob.class);
+			Trigger trigger = new SimpleTrigger("job1", SimpleTrigger.REPEAT_INDEFINITELY, 60 * 60 * 1000);
 			scheduler.scheduleJob(job, trigger);
+
+			job = new JobDetail("job2", NoOpJob.class);
+			trigger = new SimpleTrigger("job2", SimpleTrigger.REPEAT_INDEFINITELY, 60 * 60 * 1000);
 			
-			job = newJob(MyJob.class).withIdentity("job2").build();
-			trigger = newTrigger().withIdentity("job2").withSchedule(repeatHourlyForever()).build();
 			scheduler.scheduleJob(job, trigger);
 			
 			// Now load the xml data with directives: overwrite-existing-data=false, ignore-duplicates=true
@@ -126,35 +121,30 @@ public class XMLSchedulingDataProcessorTest extends TestCase {
 			clhelper.initialize();
 			XMLSchedulingDataProcessor processor = new XMLSchedulingDataProcessor(clhelper);
 			processor.processFileAndScheduleJobs("org/quartz/xml/directives_no-overwrite_ignoredups.xml", scheduler);
-			assertEquals(2, scheduler.getJobKeys(GroupMatcher.jobGroupEquals("DEFAULT")).size());
-			assertEquals(2, scheduler.getTriggerKeys(GroupMatcher.triggerGroupEquals("DEFAULT")).size());
+			assertEquals(2, scheduler.getJobNames("DEFAULT").length);
+			assertEquals(2, scheduler.getTriggerNames("DEFAULT").length);
 		} finally {
 			if (scheduler != null)
 				scheduler.shutdown();
 		}
 	}
 	
-	/** QTZ-180 */
-	public void testXsdSchemaValidationOnVariousTriggers() throws Exception {
+	/** QTZ-146 */
+	public void _testXsdSchemaValidationOnVariousTriggers() throws Exception {
 		Scheduler scheduler = null;
 		try {
 			StdSchedulerFactory factory = new StdSchedulerFactory("org/quartz/xml/quartz-test.properties");
-			scheduler = factory.getScheduler();
+			scheduler = StdSchedulerFactory.getDefaultScheduler();
 			ClassLoadHelper clhelper = new CascadingClassLoadHelper();
 			clhelper.initialize();
 			XMLSchedulingDataProcessor processor = new XMLSchedulingDataProcessor(clhelper);
-			processor.processFileAndScheduleJobs("org/quartz/xml/job-scheduling-data-2.0_trigger-samples.xml", scheduler);
-			assertEquals(1, scheduler.getJobKeys(GroupMatcher.jobGroupEquals("DEFAULT")).size());
-			assertEquals(34, scheduler.getTriggerKeys(GroupMatcher.triggerGroupEquals("DEFAULT")).size());
+			processor.processFileAndScheduleJobs("org/quartz/xml/job-scheduling-data-1.8_trigger-samples.xml", scheduler);
+			assertEquals(1, scheduler.getJobNames("DEFAULT").length);
+			assertEquals(32, scheduler.getTriggerNames("DEFAULT").length);
 		} finally {
 			if (scheduler != null)
 				scheduler.shutdown();
 		}
 	}
 	
-	/** An empty job for testing purpose. */
-	public static class MyJob implements Job {
-		public void execute(JobExecutionContext context) throws JobExecutionException {
-		}		
-	}
 }

@@ -17,22 +17,18 @@
 
 package org.quartz.examples.example9;
 
+import java.util.Date;
 
-import static org.quartz.JobBuilder.newJob;
-import static org.quartz.TriggerBuilder.newTrigger;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.quartz.JobDetail;
-import org.quartz.JobKey;
 import org.quartz.JobListener;
-import org.quartz.Matcher;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerFactory;
 import org.quartz.SchedulerMetaData;
-import org.quartz.Trigger;
+import org.quartz.SimpleTrigger;
+import org.quartz.examples.example2.SimpleJob;
 import org.quartz.impl.StdSchedulerFactory;
-import org.quartz.impl.matchers.KeyMatcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Demonstrates the behavior of <code>JobListener</code>s.  In particular, 
@@ -56,21 +52,19 @@ public class ListenerExample {
         log.info("------- Scheduling Jobs -------------------");
 
         // schedule a job to run immediately
-
-        JobDetail job = newJob(SimpleJob1.class)
-            .withIdentity("job1")
-            .build();
-        
-        Trigger trigger = newTrigger() 
-            .withIdentity("trigger1")
-            .startNow()
-            .build();
-
+        JobDetail job = new JobDetail("job1", "group1", SimpleJob.class);
+        SimpleTrigger trigger = new SimpleTrigger("trigger1", "group1", 
+                new Date(), 
+                null, 
+                0, 
+                0);
         // Set up the listener
         JobListener listener = new Job1Listener();
-        Matcher<JobKey> matcher = KeyMatcher.keyEquals(job.getKey());
-        sched.getListenerManager().addJobListener(listener, matcher); 
+        sched.addJobListener(listener);
 
+        // make sure the listener is associated with the job
+        job.addJobListener(listener.getName());        
+        
         // schedule the job to run
         sched.scheduleJob(job, trigger);
         

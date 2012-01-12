@@ -19,9 +19,11 @@
 package org.quartz;
 
 /**
+ * <p>
  * An exception that is thrown to indicate that there is a misconfiguration of
  * the <code>SchedulerFactory</code>- or one of the components it
  * configures.
+ * </p>
  * 
  * @author James House
  */
@@ -41,7 +43,7 @@ public class SchedulerConfigException extends SchedulerException {
      * </p>
      */
     public SchedulerConfigException(String msg) {
-        super(msg);
+        super(msg, ERR_BAD_CONFIGURATION);
     }
 
     /**
@@ -52,6 +54,7 @@ public class SchedulerConfigException extends SchedulerException {
      */
     public SchedulerConfigException(String msg, Throwable cause) {
         super(msg, cause);
+        setErrorCode(ERR_BAD_CONFIGURATION);
     }
 
 }

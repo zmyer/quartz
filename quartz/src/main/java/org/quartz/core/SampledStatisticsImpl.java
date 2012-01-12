@@ -41,8 +41,8 @@ public class SampledStatisticsImpl extends SchedulerListenerSupport implements S
         jobsExecutingCount = createSampledCounter(DEFAULT_SAMPLED_COUNTER_CONFIG);
         jobsCompletedCount = createSampledCounter(DEFAULT_SAMPLED_COUNTER_CONFIG);
         
-        scheduler.addInternalSchedulerListener(this);
-        scheduler.addInternalJobListener(this);
+        scheduler.addSchedulerListener(this);
+        scheduler.addGlobalJobListener(this);
 	}
 	
 	public void shutdown() {
@@ -78,7 +78,6 @@ public class SampledStatisticsImpl extends SchedulerListenerSupport implements S
 		return NAME;
 	}
 
-    @Override
     public void jobScheduled(Trigger trigger) {
     	jobsScheduledCount.increment();
     }
@@ -96,8 +95,7 @@ public class SampledStatisticsImpl extends SchedulerListenerSupport implements S
 		jobsCompletedCount.increment();
 	}
 
-	@Override
-    public void jobAdded(JobDetail jobDetail) {
+	public void jobAdded(JobDetail jobDetail) {
 		/**/
 	}
 

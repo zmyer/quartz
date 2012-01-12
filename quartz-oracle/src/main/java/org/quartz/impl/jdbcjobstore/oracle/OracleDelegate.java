@@ -28,17 +28,19 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.quartz.Calendar;
-import org.quartz.JobDetail;
-import org.quartz.impl.jdbcjobstore.StdJDBCDelegate;
-import org.quartz.impl.jdbcjobstore.TriggerPersistenceDelegate;
-import org.quartz.spi.ClassLoadHelper;
-import org.quartz.spi.OperableTrigger;
 import org.slf4j.Logger;
+import org.quartz.Calendar;
+import org.quartz.CronTrigger;
+import org.quartz.JobDetail;
+import org.quartz.SimpleTrigger;
+import org.quartz.Trigger;
+import org.quartz.impl.jdbcjobstore.StdJDBCDelegate;
 
 /**
  * <p>
- * This is a driver delegate for the Oracle 10 and 11 database.
+ * This is a driver delegate for the Oracle JDBC driver. To use this delegate,
+ * <code>jdbcDriverVendor</code> should be configured as 'Oracle' with any
+ * <code>jdbcDriverVersion</code>.
  * </p>
  * 
  * @see org.quartz.impl.jdbcjobstore.WebLogicDelegate
@@ -58,8 +60,8 @@ public class OracleDelegate extends StdJDBCDelegate {
      * @param tablePrefix
      *          the prefix of all table names
      */
-    public OracleDelegate(Logger logger, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper) {
-        super(logger, tablePrefix, schedName, instanceId, classLoadHelper);
+    public OracleDelegate(Logger logger, String tablePrefix, String instanceId) {
+        super(logger, tablePrefix, instanceId);
     }
 
     /**
@@ -74,92 +76,77 @@ public class OracleDelegate extends StdJDBCDelegate {
      * @param useProperties
      *          use java.util.Properties for storage
      */
-    public OracleDelegate(Logger logger, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper,
+    public OracleDelegate(Logger logger, String tablePrefix, String instanceId,
             Boolean useProperties) {
-        super(logger, tablePrefix, schedName, instanceId, classLoadHelper, useProperties);
+        super(logger, tablePrefix, instanceId, useProperties);
     }
-
-    public static final String INSERT_ORACLE_JOB_DETAIL = "INSERT INTO "
-        + TABLE_PREFIX_SUBST + TABLE_JOB_DETAILS + " (" + COL_SCHEDULER_NAME + ", " 
-        + COL_JOB_NAME + ", " + COL_JOB_GROUP + ", " + COL_DESCRIPTION + ", "
-        + COL_JOB_CLASS + ", " + COL_IS_DURABLE + ", " 
-        + COL_IS_NONCONCURRENT +  ", " + COL_IS_UPDATE_DATA + ", " 
-        + COL_REQUESTS_RECOVERY + ", "
-        + COL_JOB_DATAMAP + ") " + " VALUES(" + SCHED_NAME_SUBST + ", ?, ?, ?, ?, ?, ?, ?, ?, EMPTY_BLOB())";
 
     public static final String UPDATE_ORACLE_JOB_DETAIL = "UPDATE "
             + TABLE_PREFIX_SUBST + TABLE_JOB_DETAILS + " SET "
             + COL_DESCRIPTION + " = ?, " + COL_JOB_CLASS + " = ?, "
-            + COL_IS_DURABLE + " = ?, " + COL_IS_NONCONCURRENT + " = ?, "  
-            + COL_IS_UPDATE_DATA + " = ?, " + COL_REQUESTS_RECOVERY + " = ?, "
-            + COL_JOB_DATAMAP + " = EMPTY_BLOB() "
-            + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-            + " AND " + COL_JOB_NAME + " = ? AND " + COL_JOB_GROUP + " = ?";
+            + COL_IS_DURABLE + " = ?, " + COL_IS_VOLATILE + " = ?, "
+            + COL_IS_STATEFUL + " = ?, " + COL_REQUESTS_RECOVERY + " = ? "
+            + " WHERE " + COL_JOB_NAME + " = ? AND " + COL_JOB_GROUP + " = ?";
 
     public static final String UPDATE_ORACLE_JOB_DETAIL_BLOB = "UPDATE "
             + TABLE_PREFIX_SUBST + TABLE_JOB_DETAILS + " SET "
-            + COL_JOB_DATAMAP + " = ? " + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-            + " AND " + COL_JOB_NAME
+            + COL_JOB_DATAMAP + " = ? " + " WHERE " + COL_JOB_NAME
+            + " = ? AND " + COL_JOB_GROUP + " = ?";
+
+    public static final String UPDATE_ORACLE_JOB_DETAIL_EMPTY_BLOB = "UPDATE "
+            + TABLE_PREFIX_SUBST + TABLE_JOB_DETAILS + " SET "
+            + COL_JOB_DATAMAP + " = EMPTY_BLOB() " + " WHERE " + COL_JOB_NAME
             + " = ? AND " + COL_JOB_GROUP + " = ?";
 
     public static final String SELECT_ORACLE_JOB_DETAIL_BLOB = "SELECT "
             + COL_JOB_DATAMAP + " FROM " + TABLE_PREFIX_SUBST
-            + TABLE_JOB_DETAILS + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-            + " AND " + COL_JOB_NAME + " = ? AND "
+            + TABLE_JOB_DETAILS + " WHERE " + COL_JOB_NAME + " = ? AND "
             + COL_JOB_GROUP + " = ? FOR UPDATE";
 
     public static final String UPDATE_ORACLE_TRIGGER = "UPDATE "  
         + TABLE_PREFIX_SUBST + TABLE_TRIGGERS + " SET " + COL_JOB_NAME  
-        + " = ?, " + COL_JOB_GROUP + " = ?, "
+        + " = ?, " + COL_JOB_GROUP + " = ?, " + COL_IS_VOLATILE + " = ?, "
         + COL_DESCRIPTION + " = ?, " + COL_NEXT_FIRE_TIME + " = ?, "
         + COL_PREV_FIRE_TIME + " = ?, " + COL_TRIGGER_STATE + " = ?, "
         + COL_TRIGGER_TYPE + " = ?, " + COL_START_TIME + " = ?, "
         + COL_END_TIME + " = ?, " + COL_CALENDAR_NAME + " = ?, "
         + COL_MISFIRE_INSTRUCTION + " = ?, "
         + COL_PRIORITY + " = ? WHERE " 
-        + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-        + " AND " + COL_TRIGGER_NAME + " = ? AND " + COL_TRIGGER_GROUP + " = ?";
+        + COL_TRIGGER_NAME + " = ? AND " + COL_TRIGGER_GROUP + " = ?";
 
     
     public static final String SELECT_ORACLE_TRIGGER_JOB_DETAIL_BLOB = "SELECT "
         + COL_JOB_DATAMAP + " FROM " + TABLE_PREFIX_SUBST
-        + TABLE_TRIGGERS + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-        + " AND " + COL_TRIGGER_NAME + " = ? AND "
+        + TABLE_TRIGGERS + " WHERE " + COL_TRIGGER_NAME + " = ? AND "
         + COL_TRIGGER_GROUP + " = ? FOR UPDATE";
 
     public static final String UPDATE_ORACLE_TRIGGER_JOB_DETAIL_BLOB = "UPDATE "
         + TABLE_PREFIX_SUBST + TABLE_TRIGGERS + " SET "
-        + COL_JOB_DATAMAP + " = ? " + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-        + " AND " + COL_TRIGGER_NAME
+        + COL_JOB_DATAMAP + " = ? " + " WHERE " + COL_TRIGGER_NAME
         + " = ? AND " + COL_TRIGGER_GROUP + " = ?";
 
     public static final String UPDATE_ORACLE_TRIGGER_JOB_DETAIL_EMPTY_BLOB = "UPDATE "
         + TABLE_PREFIX_SUBST + TABLE_TRIGGERS + " SET "
-        + COL_JOB_DATAMAP + " = EMPTY_BLOB() " + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-        + " AND " + COL_TRIGGER_NAME
+        + COL_JOB_DATAMAP + " = EMPTY_BLOB() " + " WHERE " + COL_TRIGGER_NAME
         + " = ? AND " + COL_TRIGGER_GROUP + " = ?";
     
     
     public static final String INSERT_ORACLE_CALENDAR = "INSERT INTO "
-            + TABLE_PREFIX_SUBST + TABLE_CALENDARS + " (" + COL_SCHEDULER_NAME + ", " 
-            + COL_CALENDAR_NAME + ", " + COL_CALENDAR + ") " 
-            + " VALUES(" + SCHED_NAME_SUBST + ", ?, EMPTY_BLOB())";
+            + TABLE_PREFIX_SUBST + TABLE_CALENDARS + " (" + COL_CALENDAR_NAME
+            + ", " + COL_CALENDAR + ") " + " VALUES(?, EMPTY_BLOB())";
 
     public static final String SELECT_ORACLE_CALENDAR_BLOB = "SELECT "
             + COL_CALENDAR + " FROM " + TABLE_PREFIX_SUBST + TABLE_CALENDARS
-            + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-            + " AND " + COL_CALENDAR_NAME + " = ? FOR UPDATE";
+            + " WHERE " + COL_CALENDAR_NAME + " = ? FOR UPDATE";
 
     public static final String UPDATE_ORACLE_CALENDAR_BLOB = "UPDATE "
             + TABLE_PREFIX_SUBST + TABLE_CALENDARS + " SET " + COL_CALENDAR
-            + " = ? " + " WHERE " + COL_SCHEDULER_NAME + " = " + SCHED_NAME_SUBST
-            + " AND " + COL_CALENDAR_NAME + " = ?";
+            + " = ? " + " WHERE " + COL_CALENDAR_NAME + " = ?";
 
     //---------------------------------------------------------------------------
     // protected methods that can be overridden by subclasses
     //---------------------------------------------------------------------------
 
-    @Override
     protected Object getObjectFromBlob(ResultSet rs, String colName)
         throws ClassNotFoundException, IOException, SQLException {
         
@@ -177,7 +164,6 @@ public class OracleDelegate extends StdJDBCDelegate {
         return obj;
     }
 
-    @Override
     public int insertJobDetail(Connection conn, JobDetail job)
         throws IOException, SQLException {
 
@@ -187,22 +173,30 @@ public class OracleDelegate extends StdJDBCDelegate {
         ResultSet rs = null;
 
         try {
-            ps = conn.prepareStatement(rtp(INSERT_ORACLE_JOB_DETAIL));
-            ps.setString(1, job.getKey().getName());
-            ps.setString(2, job.getKey().getGroup());
+            ps = conn.prepareStatement(rtp(INSERT_JOB_DETAIL));
+            ps.setString(1, job.getName());
+            ps.setString(2, job.getGroup());
             ps.setString(3, job.getDescription());
             ps.setString(4, job.getJobClass().getName());
             setBoolean(ps, 5, job.isDurable());
-            setBoolean(ps, 6, job.isConcurrentExectionDisallowed());
-            setBoolean(ps, 7, job.isPersistJobDataAfterExecution());
+            setBoolean(ps, 6, job.isVolatile());
+            setBoolean(ps, 7, job.isStateful());
             setBoolean(ps, 8, job.requestsRecovery());
 
+            ps.setBinaryStream(9, null, 0);
+            ps.executeUpdate();
+            ps.close();
+
+            ps = conn
+                    .prepareStatement(rtp(UPDATE_ORACLE_JOB_DETAIL_EMPTY_BLOB));
+            ps.setString(1, job.getName());
+            ps.setString(2, job.getGroup());
             ps.executeUpdate();
             ps.close();
 
             ps = conn.prepareStatement(rtp(SELECT_ORACLE_JOB_DETAIL_BLOB));
-            ps.setString(1, job.getKey().getName());
-            ps.setString(2, job.getKey().getGroup());
+            ps.setString(1, job.getName());
+            ps.setString(2, job.getGroup());
 
             rs = ps.executeQuery();
 
@@ -220,10 +214,17 @@ public class OracleDelegate extends StdJDBCDelegate {
 
             ps = conn.prepareStatement(rtp(UPDATE_ORACLE_JOB_DETAIL_BLOB));
             ps.setBlob(1, dbBlob);
-            ps.setString(2, job.getKey().getName());
-            ps.setString(3, job.getKey().getGroup());
+            ps.setString(2, job.getName());
+            ps.setString(3, job.getGroup());
 
             res = ps.executeUpdate();
+
+            if (res > 0) {
+                String[] jobListeners = job.getJobListenerNames();
+                for (int i = 0; jobListeners != null && i < jobListeners.length; i++) {
+                    insertJobListener(conn, job, jobListeners[i]);
+                }
+            }
 
             return res;
         } finally {
@@ -233,8 +234,7 @@ public class OracleDelegate extends StdJDBCDelegate {
 
     }
 
-    @Override
-    protected Object getJobDataFromBlob(ResultSet rs, String colName)
+    protected Object getJobDetailFromBlob(ResultSet rs, String colName)
         throws ClassNotFoundException, IOException, SQLException {
         
         if (canUseProperties()) {
@@ -245,7 +245,6 @@ public class OracleDelegate extends StdJDBCDelegate {
         return getObjectFromBlob(rs, colName);
     }
 
-    @Override
     public int updateJobDetail(Connection conn, JobDetail job)
         throws IOException, SQLException {
         
@@ -261,18 +260,25 @@ public class OracleDelegate extends StdJDBCDelegate {
             ps.setString(1, job.getDescription());
             ps.setString(2, job.getJobClass().getName());
             setBoolean(ps, 3, job.isDurable());
-            setBoolean(ps, 4, job.isConcurrentExectionDisallowed());
-            setBoolean(ps, 5, job.isPersistJobDataAfterExecution());
+            setBoolean(ps, 4, job.isVolatile());
+            setBoolean(ps, 5, job.isStateful());
             setBoolean(ps, 6, job.requestsRecovery());
-            ps.setString(7, job.getKey().getName());
-            ps.setString(8, job.getKey().getGroup());
+            ps.setString(7, job.getName());
+            ps.setString(8, job.getGroup());
 
             ps.executeUpdate();
             ps.close();
 
+            ps = conn
+                    .prepareStatement(rtp(UPDATE_ORACLE_JOB_DETAIL_EMPTY_BLOB));
+            ps.setString(1, job.getName());
+            ps.setString(2, job.getGroup());
+            ps.executeUpdate();
+            ps.close();
+
             ps = conn.prepareStatement(rtp(SELECT_ORACLE_JOB_DETAIL_BLOB));
-            ps.setString(1, job.getKey().getName());
-            ps.setString(2, job.getKey().getGroup());
+            ps.setString(1, job.getName());
+            ps.setString(2, job.getGroup());
 
             rs = ps.executeQuery();
 
@@ -283,10 +289,18 @@ public class OracleDelegate extends StdJDBCDelegate {
                 ps2 = conn.prepareStatement(rtp(UPDATE_ORACLE_JOB_DETAIL_BLOB));
 
                 ps2.setBlob(1, dbBlob);
-                ps2.setString(2, job.getKey().getName());
-                ps2.setString(3, job.getKey().getGroup());
+                ps2.setString(2, job.getName());
+                ps2.setString(3, job.getGroup());
 
                 res = ps2.executeUpdate();
+            }
+
+            if (res > 0) {
+                deleteJobListeners(conn, job.getName(), job.getGroup());
+                String[] jobListeners = job.getJobListenerNames();
+                for (int i = 0; jobListeners != null && i < jobListeners.length; i++) {
+                    insertJobListener(conn, job, jobListeners[i]);
+                }
             }
 
             return res;
@@ -298,8 +312,7 @@ public class OracleDelegate extends StdJDBCDelegate {
         }
     }
 
-    @Override
-    public int insertTrigger(Connection conn, OperableTrigger trigger, String state,
+    public int insertTrigger(Connection conn, Trigger trigger, String state,
             JobDetail jobDetail) throws SQLException, IOException {
 
         byte[] data = null;
@@ -314,38 +327,38 @@ public class OracleDelegate extends StdJDBCDelegate {
 
         try {
             ps = conn.prepareStatement(rtp(INSERT_TRIGGER));
-            ps.setString(1, trigger.getKey().getName());
-            ps.setString(2, trigger.getKey().getGroup());
-            ps.setString(3, trigger.getJobKey().getName());
-            ps.setString(4, trigger.getJobKey().getGroup());
-            ps.setString(5, trigger.getDescription());
-            ps.setBigDecimal(6, new BigDecimal(String.valueOf(trigger
+            ps.setString(1, trigger.getName());
+            ps.setString(2, trigger.getGroup());
+            ps.setString(3, trigger.getJobName());
+            ps.setString(4, trigger.getJobGroup());
+            setBoolean(ps, 5, trigger.isVolatile());
+            ps.setString(6, trigger.getDescription());
+            ps.setBigDecimal(7, new BigDecimal(String.valueOf(trigger
                     .getNextFireTime().getTime())));
             long prevFireTime = -1;
             if (trigger.getPreviousFireTime() != null) {
                 prevFireTime = trigger.getPreviousFireTime().getTime();
             }
-            ps.setBigDecimal(7, new BigDecimal(String.valueOf(prevFireTime)));
-            ps.setString(8, state);
-            
-            TriggerPersistenceDelegate tDel = findTriggerPersistenceDelegate(trigger);
-            
-            String type = TTYPE_BLOB;
-            if(tDel != null)
-                type = tDel.getHandledTriggerTypeDiscriminator();
-            ps.setString(9, type);
-            
-            ps.setBigDecimal(10, new BigDecimal(String.valueOf(trigger
+            ps.setBigDecimal(8, new BigDecimal(String.valueOf(prevFireTime)));
+            ps.setString(9, state);
+            if (trigger instanceof SimpleTrigger && ((SimpleTrigger)trigger).hasAdditionalProperties() == false ) {
+                ps.setString(10, TTYPE_SIMPLE);
+            } else if (trigger instanceof CronTrigger && ((CronTrigger)trigger).hasAdditionalProperties() == false ) {
+                ps.setString(10, TTYPE_CRON);
+            } else {
+                ps.setString(10, TTYPE_BLOB);
+            }
+            ps.setBigDecimal(11, new BigDecimal(String.valueOf(trigger
                     .getStartTime().getTime())));
             long endTime = 0;
             if (trigger.getEndTime() != null) {
                 endTime = trigger.getEndTime().getTime();
             }
-            ps.setBigDecimal(11, new BigDecimal(String.valueOf(endTime)));
-            ps.setString(12, trigger.getCalendarName());
-            ps.setInt(13, trigger.getMisfireInstruction());
-            ps.setBinaryStream(14, null, 0);
-            ps.setInt(15, trigger.getPriority());
+            ps.setBigDecimal(12, new BigDecimal(String.valueOf(endTime)));
+            ps.setString(13, trigger.getCalendarName());
+            ps.setInt(14, trigger.getMisfireInstruction());
+            ps.setBinaryStream(15, null, 0);
+            ps.setInt(16, trigger.getPriority());
 
             insertResult = ps.executeUpdate();
 
@@ -354,22 +367,24 @@ public class OracleDelegate extends StdJDBCDelegate {
 
                 ps = conn
                     .prepareStatement(rtp(UPDATE_ORACLE_TRIGGER_JOB_DETAIL_EMPTY_BLOB));
-                ps.setString(1, trigger.getKey().getName());
-                ps.setString(2, trigger.getKey().getGroup());
+                ps.setString(1, trigger.getName());
+                ps.setString(2, trigger.getGroup());
                 ps.executeUpdate();
                 ps.close();
         
                 ps = conn.prepareStatement(rtp(SELECT_ORACLE_TRIGGER_JOB_DETAIL_BLOB));
-                ps.setString(1, trigger.getKey().getName());
-                ps.setString(2, trigger.getKey().getGroup());
+                ps.setString(1, trigger.getName());
+                ps.setString(2, trigger.getGroup());
         
                 rs = ps.executeQuery();
+        
+                int res = 0;
         
                 Blob dbBlob = null;
                 if (rs.next()) {
                     dbBlob = writeDataToBlob(rs, 1, data);
                 } else {
-                    return 0;
+                    return res;
                 }
         
                 rs.close();
@@ -377,27 +392,28 @@ public class OracleDelegate extends StdJDBCDelegate {
         
                 ps = conn.prepareStatement(rtp(UPDATE_ORACLE_TRIGGER_JOB_DETAIL_BLOB));
                 ps.setBlob(1, dbBlob);
-                ps.setString(2, trigger.getKey().getName());
-                ps.setString(3, trigger.getKey().getGroup());
+                ps.setString(2, trigger.getName());
+                ps.setString(3, trigger.getGroup());
         
-                ps.executeUpdate();
+                res = ps.executeUpdate();
             }
-
-            if(tDel == null)
-                insertBlobTrigger(conn, trigger);
-            else
-                tDel.insertExtendedTriggerProperties(conn, trigger, state, jobDetail);
             
         } finally {
             closeResultSet(rs);
             closeStatement(ps);
         }
 
+        if (insertResult > 0) {
+            String[] trigListeners = trigger.getTriggerListenerNames();
+            for (int i = 0; trigListeners != null && i < trigListeners.length; i++) {
+                insertTriggerListener(conn, trigger, trigListeners[i]);
+            }
+        }
+
         return insertResult;
     }
 
-    @Override
-    public int updateTrigger(Connection conn, OperableTrigger trigger, String state,
+    public int updateTrigger(Connection conn, Trigger trigger, String state,
             JobDetail jobDetail) throws SQLException, IOException {
 
         // save some clock cycles by unnecessarily writing job data blob ...
@@ -417,41 +433,43 @@ public class OracleDelegate extends StdJDBCDelegate {
         try {
             ps = conn.prepareStatement(rtp(UPDATE_ORACLE_TRIGGER));
                 
-            ps.setString(1, trigger.getJobKey().getName());
-            ps.setString(2, trigger.getJobKey().getGroup());
-            ps.setString(3, trigger.getDescription());
+            ps.setString(1, trigger.getJobName());
+            ps.setString(2, trigger.getJobGroup());
+            setBoolean(ps, 3, trigger.isVolatile());
+            ps.setString(4, trigger.getDescription());
             long nextFireTime = -1;
             if (trigger.getNextFireTime() != null) {
                 nextFireTime = trigger.getNextFireTime().getTime();
             }
-            ps.setBigDecimal(4, new BigDecimal(String.valueOf(nextFireTime)));
+            ps.setBigDecimal(5, new BigDecimal(String.valueOf(nextFireTime)));
             long prevFireTime = -1;
             if (trigger.getPreviousFireTime() != null) {
                 prevFireTime = trigger.getPreviousFireTime().getTime();
             }
-            ps.setBigDecimal(5, new BigDecimal(String.valueOf(prevFireTime)));
-            ps.setString(6, state);
-            
-            TriggerPersistenceDelegate tDel = findTriggerPersistenceDelegate(trigger);
-            
-            String type = TTYPE_BLOB;
-            if(tDel != null)
-                type = tDel.getHandledTriggerTypeDiscriminator();
-
-            ps.setString(7, type);
-            
-            ps.setBigDecimal(8, new BigDecimal(String.valueOf(trigger
+            ps.setBigDecimal(6, new BigDecimal(String.valueOf(prevFireTime)));
+            ps.setString(7, state);
+            if (trigger instanceof SimpleTrigger && ((SimpleTrigger)trigger).hasAdditionalProperties() == false ) {
+                //                updateSimpleTrigger(conn, (SimpleTrigger)trigger);
+                ps.setString(8, TTYPE_SIMPLE);
+            } else if (trigger instanceof CronTrigger && ((CronTrigger)trigger).hasAdditionalProperties() == false ) {
+                //                updateCronTrigger(conn, (CronTrigger)trigger);
+                ps.setString(8, TTYPE_CRON);
+            } else {
+                //                updateBlobTrigger(conn, trigger);
+                ps.setString(8, TTYPE_BLOB);
+            }
+            ps.setBigDecimal(9, new BigDecimal(String.valueOf(trigger
                     .getStartTime().getTime())));
             long endTime = 0;
             if (trigger.getEndTime() != null) {
                 endTime = trigger.getEndTime().getTime();
             }
-            ps.setBigDecimal(9, new BigDecimal(String.valueOf(endTime)));
-            ps.setString(10, trigger.getCalendarName());
-            ps.setInt(11, trigger.getMisfireInstruction());
-            ps.setInt(12, trigger.getPriority());
-            ps.setString(13, trigger.getKey().getName());
-            ps.setString(14, trigger.getKey().getGroup());
+            ps.setBigDecimal(10, new BigDecimal(String.valueOf(endTime)));
+            ps.setString(11, trigger.getCalendarName());
+            ps.setInt(12, trigger.getMisfireInstruction());
+            ps.setInt(13, trigger.getPriority());
+            ps.setString(14, trigger.getName());
+            ps.setString(15, trigger.getGroup());
 
             insertResult = ps.executeUpdate();
 
@@ -460,33 +478,30 @@ public class OracleDelegate extends StdJDBCDelegate {
 
                 ps = conn
                         .prepareStatement(rtp(UPDATE_ORACLE_TRIGGER_JOB_DETAIL_EMPTY_BLOB));
-                ps.setString(1, trigger.getKey().getName());
-                ps.setString(2, trigger.getKey().getGroup());
+                ps.setString(1, trigger.getName());
+                ps.setString(2, trigger.getGroup());
                 ps.executeUpdate();
                 ps.close();
 
                 ps = conn.prepareStatement(rtp(SELECT_ORACLE_TRIGGER_JOB_DETAIL_BLOB));
-                ps.setString(1, trigger.getKey().getName());
-                ps.setString(2, trigger.getKey().getGroup());
+                ps.setString(1, trigger.getName());
+                ps.setString(2, trigger.getGroup());
 
                 rs = ps.executeQuery();
+
+                int res = 0;
 
                 if (rs.next()) {
                     Blob dbBlob = writeDataToBlob(rs, 1, data);
                     ps2 = conn.prepareStatement(rtp(UPDATE_ORACLE_TRIGGER_JOB_DETAIL_BLOB));
 
                     ps2.setBlob(1, dbBlob);
-                    ps2.setString(2, trigger.getKey().getName());
-                    ps2.setString(3, trigger.getKey().getGroup());
+                    ps2.setString(2, trigger.getName());
+                    ps2.setString(3, trigger.getGroup());
 
-                    ps2.executeUpdate();
+                    res = ps2.executeUpdate();
                 }
             }
-            
-            if(tDel == null)
-                updateBlobTrigger(conn, trigger);
-            else
-                tDel.updateExtendedTriggerProperties(conn, trigger, state, jobDetail);
 
         } finally {
             closeResultSet(rs);
@@ -494,10 +509,18 @@ public class OracleDelegate extends StdJDBCDelegate {
             closeStatement(ps2);
         }
 
+        if (insertResult > 0) {
+            deleteTriggerListeners(conn, trigger.getName(), trigger.getGroup());
+
+            String[] trigListeners = trigger.getTriggerListenerNames();
+            for (int i = 0; trigListeners != null && i < trigListeners.length; i++) {
+                insertTriggerListener(conn, trigger, trigListeners[i]);
+            }
+        }
+
         return insertResult;
     }
     
-    @Override
     public int insertCalendar(Connection conn, String calendarName,
             Calendar calendar) throws IOException, SQLException {
         ByteArrayOutputStream baos = serializeObject(calendar);
@@ -537,7 +560,6 @@ public class OracleDelegate extends StdJDBCDelegate {
         }
     }
 
-    @Override
     public int updateCalendar(Connection conn, String calendarName,
             Calendar calendar) throws IOException, SQLException {
         ByteArrayOutputStream baos = serializeObject(calendar);
@@ -571,7 +593,6 @@ public class OracleDelegate extends StdJDBCDelegate {
         }
     }
 
-    @Override
     public int updateJobData(Connection conn, JobDetail job)
         throws IOException, SQLException {
         
@@ -584,8 +605,8 @@ public class OracleDelegate extends StdJDBCDelegate {
 
         try {
             ps = conn.prepareStatement(rtp(SELECT_ORACLE_JOB_DETAIL_BLOB));
-            ps.setString(1, job.getKey().getName());
-            ps.setString(2, job.getKey().getGroup());
+            ps.setString(1, job.getName());
+            ps.setString(2, job.getGroup());
 
             rs = ps.executeQuery();
 
@@ -596,8 +617,8 @@ public class OracleDelegate extends StdJDBCDelegate {
                 ps2 = conn.prepareStatement(rtp(UPDATE_ORACLE_JOB_DETAIL_BLOB));
 
                 ps2.setBlob(1, dbBlob);
-                ps2.setString(2, job.getKey().getName());
-                ps2.setString(3, job.getKey().getGroup());
+                ps2.setString(2, job.getName());
+                ps2.setString(3, job.getGroup());
 
                 res = ps2.executeUpdate();
             }
@@ -610,7 +631,6 @@ public class OracleDelegate extends StdJDBCDelegate {
         }
     }
 
-    @SuppressWarnings("deprecation")
     protected Blob writeDataToBlob(ResultSet rs, int column, byte[] data) throws SQLException {
 
         Blob blob = rs.getBlob(column); // get blob

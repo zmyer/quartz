@@ -17,7 +17,6 @@
 
 package org.quartz.spi;
 
-import org.quartz.JobKey;
 import org.quartz.Trigger;
 
 /**
@@ -40,7 +39,6 @@ public interface SchedulerSignaler {
 
     void notifySchedulerListenersFinalized(Trigger trigger);
 
-    void notifySchedulerListenersJobDeleted(JobKey jobKey);
-
     void signalSchedulingChange(long candidateNewNextFireTime);
+
 }

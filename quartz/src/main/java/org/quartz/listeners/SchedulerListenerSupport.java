@@ -16,11 +16,9 @@
 package org.quartz.listeners;
 
 import org.quartz.JobDetail;
-import org.quartz.JobKey;
 import org.quartz.SchedulerException;
 import org.quartz.SchedulerListener;
 import org.quartz.Trigger;
-import org.quartz.TriggerKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,59 +47,44 @@ public abstract class SchedulerListenerSupport implements SchedulerListener {
 
     public void jobAdded(JobDetail jobDetail) {
     }
-
-    public void jobDeleted(JobKey jobKey) {
+    
+    public void jobDeleted(String jobName, String groupName) {
     }
-
-    public void jobPaused(JobKey jobKey) {
-    }
-
-    public void jobResumed(JobKey jobKey) {
-    }
-
+    
     public void jobScheduled(Trigger trigger) {
     }
 
-    public void jobsPaused(String jobGroup) {
-    }
-
-    public void jobsResumed(String jobGroup) {
-    }
-
-    public void jobUnscheduled(TriggerKey triggerKey) {
-    }
-
-    public void schedulerError(String msg, SchedulerException cause) {
-    }
-
-    public void schedulerInStandbyMode() {
-    }
-
-    public void schedulerShutdown() {
-    }
-
-    public void schedulerShuttingdown() {
-    }
-
-    public void schedulerStarted() {
+    public void jobUnscheduled(String triggerName, String triggerGroup) {
     }
 
     public void triggerFinalized(Trigger trigger) {
     }
 
-    public void triggerPaused(TriggerKey triggerKey) {
+    public void triggersPaused(String triggerName, String triggerGroup) {
     }
 
-    public void triggerResumed(TriggerKey triggerKey) {
+    public void triggersResumed(String triggerName, String triggerGroup) {
     }
 
-    public void triggersPaused(String triggerGroup) {
+    public void jobsPaused(String jobName, String jobGroup) {
     }
 
-    public void triggersResumed(String triggerGroup) {
+    public void jobsResumed(String jobName, String jobGroup) {
+    }
+
+    public void schedulerError(String msg, SchedulerException cause) {
+    }
+
+    public void schedulerStarted() {
     }
     
-    public void schedulingDataCleared() {
+    public void schedulerInStandbyMode() {
     }
-
+    
+    public void schedulerShutdown() {
+    }
+    
+    public void schedulerShuttingdown() {
+    }
+    
 }

@@ -23,7 +23,6 @@ import java.io.ObjectInputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.quartz.spi.ClassLoadHelper;
 import org.slf4j.Logger;
 
 /**
@@ -44,12 +43,12 @@ public class MSSQLDelegate extends StdJDBCDelegate {
      * @param tablePrefix
      *          the prefix of all table names
      */
-    public MSSQLDelegate(Logger log, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper) {
-        super(log, tablePrefix, schedName, instanceId, classLoadHelper);
+    public MSSQLDelegate(Logger log, String tablePrefix, String instanceId) {
+        super(log, tablePrefix, instanceId);
     }
 
-    public MSSQLDelegate(Logger log, String tablePrefix, String schedName, String instanceId, ClassLoadHelper classLoadHelper, Boolean useProperties) {
-        super(log, tablePrefix, schedName, instanceId, classLoadHelper, useProperties);
+    public MSSQLDelegate(Logger log, String tablePrefix, String instanceId, Boolean useProperties) {
+        super(log, tablePrefix, instanceId, useProperties);
     }
 
     //---------------------------------------------------------------------------
@@ -73,7 +72,6 @@ public class MSSQLDelegate extends StdJDBCDelegate {
      * @throws IOException
      *           if deserialization causes an error
      */
-    @Override           
     protected Object getObjectFromBlob(ResultSet rs, String colName)
         throws ClassNotFoundException, IOException, SQLException {
         InputStream binaryInput = rs.getBinaryStream(colName);
@@ -94,8 +92,7 @@ public class MSSQLDelegate extends StdJDBCDelegate {
         return obj;
     }
 
-    @Override           
-    protected Object getJobDataFromBlob(ResultSet rs, String colName)
+    protected Object getJobDetailFromBlob(ResultSet rs, String colName)
         throws ClassNotFoundException, IOException, SQLException {
         if (canUseProperties()) {
             InputStream binaryInput = rs.getBinaryStream(colName);

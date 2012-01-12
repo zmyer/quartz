@@ -34,7 +34,6 @@ public class AnnualCalendarTest extends SerializationTestSupport {
      * Get the object to serialize when generating serialized file for future
      * tests, and against which to validate deserialized object.
      */
-    @Override
     protected Object getTargetObject() {
         AnnualCalendar c = new AnnualCalendar();
         
@@ -53,7 +52,6 @@ public class AnnualCalendarTest extends SerializationTestSupport {
      * Get the Quartz versions for which we should verify
      * serialization backwards compatibility.
      */
-    @Override
     protected String[] getVersions() {
         return VERSIONS;
     }
@@ -62,7 +60,6 @@ public class AnnualCalendarTest extends SerializationTestSupport {
      * Verify that the target object and the object we just deserialized 
      * match.
      */
-    @Override
     protected void verifyMatch(Object target, Object deserialized) {
         AnnualCalendar targetCalendar = (AnnualCalendar)target;
         AnnualCalendar deserializedCalendar = (AnnualCalendar)deserialized;

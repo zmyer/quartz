@@ -17,24 +17,16 @@
 
 package org.quartz.spi;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.quartz.Calendar;
-import org.quartz.Job;
 import org.quartz.JobDetail;
-import org.quartz.JobKey;
 import org.quartz.JobPersistenceException;
 import org.quartz.ObjectAlreadyExistsException;
 import org.quartz.SchedulerConfigException;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
-import org.quartz.TriggerKey;
-import org.quartz.Trigger.CompletedExecutionInstruction;
-import org.quartz.Trigger.TriggerState;
-import org.quartz.impl.matchers.GroupMatcher;
+import org.quartz.core.SchedulingContext;
 
 /**
  * <p>
@@ -69,34 +61,28 @@ public interface JobStore {
      */
 
     /**
+     * <p>
      * Called by the QuartzScheduler before the <code>JobStore</code> is
      * used, in order to give the it a chance to initialize.
+     * </p>
      */
-    void initialize(ClassLoadHelper loadHelper, SchedulerSignaler signaler) 
-        throws SchedulerConfigException;
+    void initialize(ClassLoadHelper loadHelper,
+            SchedulerSignaler signaler) throws SchedulerConfigException;
 
     /**
+     * <p>
      * Called by the QuartzScheduler to inform the <code>JobStore</code> that
      * the scheduler has started.
+     * </p>
      */
     void schedulerStarted() throws SchedulerException ;
 
     /**
-     * Called by the QuartzScheduler to inform the <code>JobStore</code> that
-     * the scheduler has been paused.
-     */
-    void schedulerPaused();
-
-    /**
-     * Called by the QuartzScheduler to inform the <code>JobStore</code> that
-     * the scheduler has resumed after being paused.
-     */
-    void schedulerResumed();
-
-    /**
+     * <p>
      * Called by the QuartzScheduler to inform the <code>JobStore</code> that
      * it should free up all of it's resources because the scheduler is
      * shutting down.
+     * </p>
      */
     void shutdown();
 
@@ -120,7 +106,9 @@ public interface JobStore {
     /////////////////////////////////////////////////////////////////////////////
 
     /**
+     * <p>
      * Store the given <code>{@link org.quartz.JobDetail}</code> and <code>{@link org.quartz.Trigger}</code>.
+     * </p>
      *
      * @param newJob
      *          The <code>JobDetail</code> to be stored.
@@ -130,11 +118,14 @@ public interface JobStore {
      *           if a <code>Job</code> with the same name/group already
      *           exists.
      */
-    void storeJobAndTrigger(JobDetail newJob, OperableTrigger newTrigger) 
-        throws ObjectAlreadyExistsException, JobPersistenceException;
+    void storeJobAndTrigger(SchedulingContext ctxt, JobDetail newJob,
+            Trigger newTrigger) throws ObjectAlreadyExistsException,
+            JobPersistenceException;
 
     /**
+     * <p>
      * Store the given <code>{@link org.quartz.JobDetail}</code>.
+     * </p>
      *
      * @param newJob
      *          The <code>JobDetail</code> to be stored.
@@ -146,18 +137,16 @@ public interface JobStore {
      *           if a <code>Job</code> with the same name/group already
      *           exists, and replaceExisting is set to false.
      */
-    void storeJob(JobDetail newJob, boolean replaceExisting) 
-        throws ObjectAlreadyExistsException, JobPersistenceException;
-
-    
-
-    public void storeJobsAndTriggers(Map<JobDetail, List<Trigger>> triggersAndJobs, boolean replace) 
-        throws ObjectAlreadyExistsException, JobPersistenceException;
+    void storeJob(SchedulingContext ctxt, JobDetail newJob,
+            boolean replaceExisting) throws ObjectAlreadyExistsException,
+            JobPersistenceException;
 
     /**
+     * <p>
      * Remove (delete) the <code>{@link org.quartz.Job}</code> with the given
-     * key, and any <code>{@link org.quartz.Trigger}</code> s that reference
+     * name, and any <code>{@link org.quartz.Trigger}</code> s that reference
      * it.
+     * </p>
      *
      * <p>
      * If removal of the <code>Job</code> results in an empty group, the
@@ -165,26 +154,35 @@ public interface JobStore {
      * known group names.
      * </p>
      *
+     * @param jobName
+     *          The name of the <code>Job</code> to be removed.
+     * @param groupName
+     *          The group name of the <code>Job</code> to be removed.
      * @return <code>true</code> if a <code>Job</code> with the given name &
      *         group was found and removed from the store.
      */
-    boolean removeJob(JobKey jobKey) 
-        throws JobPersistenceException;
-    
-    public boolean removeJobs(List<JobKey> jobKeys) 
-        throws JobPersistenceException;
-    
-    /**
-     * Retrieve the <code>{@link org.quartz.JobDetail}</code> for the given
-     * <code>{@link org.quartz.Job}</code>.
-     *
-     * @return The desired <code>Job</code>, or null if there is no match.
-     */
-    JobDetail retrieveJob(JobKey jobKey) 
-        throws JobPersistenceException;
+    boolean removeJob(SchedulingContext ctxt, String jobName,
+            String groupName) throws JobPersistenceException;
 
     /**
+     * <p>
+     * Retrieve the <code>{@link org.quartz.JobDetail}</code> for the given
+     * <code>{@link org.quartz.Job}</code>.
+     * </p>
+     *
+     * @param jobName
+     *          The name of the <code>Job</code> to be retrieved.
+     * @param groupName
+     *          The group name of the <code>Job</code> to be retrieved.
+     * @return The desired <code>Job</code>, or null if there is no match.
+     */
+    JobDetail retrieveJob(SchedulingContext ctxt, String jobName,
+            String groupName) throws JobPersistenceException;
+
+    /**
+     * <p>
      * Store the given <code>{@link org.quartz.Trigger}</code>.
+     * </p>
      *
      * @param newTrigger
      *          The <code>Trigger</code> to be stored.
@@ -196,14 +194,17 @@ public interface JobStore {
      *           if a <code>Trigger</code> with the same name/group already
      *           exists, and replaceExisting is set to false.
      *
-     * @see #pauseTriggers(org.quartz.impl.matchers.GroupMatcher)
+     * @see #pauseTriggerGroup(SchedulingContext, String)
      */
-    void storeTrigger(OperableTrigger newTrigger, boolean replaceExisting) 
-        throws ObjectAlreadyExistsException, JobPersistenceException;
+    void storeTrigger(SchedulingContext ctxt, Trigger newTrigger,
+            boolean replaceExisting) throws ObjectAlreadyExistsException,
+            JobPersistenceException;
 
     /**
+     * <p>
      * Remove (delete) the <code>{@link org.quartz.Trigger}</code> with the
-     * given key.
+     * given name.
+     * </p>
      *
      * <p>
      * If removal of the <code>Trigger</code> results in an empty group, the
@@ -217,67 +218,55 @@ public interface JobStore {
      * also.
      * </p>
      *
+     * @param triggerName
+     *          The name of the <code>Trigger</code> to be removed.
+     * @param groupName
+     *          The group name of the <code>Trigger</code> to be removed.
      * @return <code>true</code> if a <code>Trigger</code> with the given
      *         name & group was found and removed from the store.
      */
-    boolean removeTrigger(TriggerKey triggerKey) throws JobPersistenceException;
-
-    public boolean removeTriggers(List<TriggerKey> triggerKeys)
-        throws JobPersistenceException;
+    boolean removeTrigger(SchedulingContext ctxt, String triggerName,
+            String groupName) throws JobPersistenceException;
 
     /**
+     * <p>
      * Remove (delete) the <code>{@link org.quartz.Trigger}</code> with the
-     * given key, and store the new given one - which must be associated
+     * given name, and store the new given one - which must be associated
      * with the same job.
-     * 
+     * </p>
+     *
+     * @param triggerName
+     *          The name of the <code>Trigger</code> to be removed.
+     * @param groupName
+     *          The group name of the <code>Trigger</code> to be removed.
      * @param newTrigger
      *          The new <code>Trigger</code> to be stored.
-     *
      * @return <code>true</code> if a <code>Trigger</code> with the given
      *         name & group was found and removed from the store.
      */
-    boolean replaceTrigger(TriggerKey triggerKey, OperableTrigger newTrigger) 
-        throws JobPersistenceException;
+    boolean replaceTrigger(SchedulingContext ctxt, String triggerName,
+            String groupName, Trigger newTrigger) throws JobPersistenceException;
+
 
     /**
+     * <p>
      * Retrieve the given <code>{@link org.quartz.Trigger}</code>.
+     * </p>
      *
+     * @param triggerName
+     *          The name of the <code>Trigger</code> to be retrieved.
+     * @param groupName
+     *          The group name of the <code>Trigger</code> to be retrieved.
      * @return The desired <code>Trigger</code>, or null if there is no
      *         match.
      */
-    OperableTrigger retrieveTrigger(TriggerKey triggerKey) throws JobPersistenceException;
+    Trigger retrieveTrigger(SchedulingContext ctxt, String triggerName,
+            String groupName) throws JobPersistenceException;
 
-    
     /**
-     * Determine whether a {@link Job} with the given identifier already 
-     * exists within the scheduler.
-     * 
-     * @param jobKey the identifier to check for
-     * @return true if a Job exists with the given identifier
-     * @throws SchedulerException 
-     */
-    boolean checkExists(JobKey jobKey) throws JobPersistenceException; 
-   
-    /**
-     * Determine whether a {@link Trigger} with the given identifier already 
-     * exists within the scheduler.
-     * 
-     * @param triggerKey the identifier to check for
-     * @return true if a Trigger exists with the given identifier
-     * @throws SchedulerException 
-     */
-    boolean checkExists(TriggerKey triggerKey) throws JobPersistenceException;
- 
-    /**
-     * Clear (delete!) all scheduling data - all {@link Job}s, {@link Trigger}s
-     * {@link Calendar}s.
-     * 
-     * @throws JobPersistenceException
-     */
-    void clearAllSchedulingData() throws JobPersistenceException;
-    
-    /**
+     * <p>
      * Store the given <code>{@link org.quartz.Calendar}</code>.
+     * </p>
      *
      * @param calendar
      *          The <code>Calendar</code> to be stored.
@@ -294,12 +283,15 @@ public interface JobStore {
      *           if a <code>Calendar</code> with the same name already
      *           exists, and replaceExisting is set to false.
      */
-    void storeCalendar(String name, Calendar calendar, boolean replaceExisting, boolean updateTriggers)
+    void storeCalendar(SchedulingContext ctxt, String name,
+            Calendar calendar, boolean replaceExisting, boolean updateTriggers)
         throws ObjectAlreadyExistsException, JobPersistenceException;
 
     /**
+     * <p>
      * Remove (delete) the <code>{@link org.quartz.Calendar}</code> with the
      * given name.
+     * </p>
      *
      * <p>
      * If removal of the <code>Calendar</code> would result in
@@ -310,18 +302,20 @@ public interface JobStore {
      * @return <code>true</code> if a <code>Calendar</code> with the given name
      * was found and removed from the store.
      */
-    boolean removeCalendar(String calName)
+    boolean removeCalendar(SchedulingContext ctxt, String calName)
         throws JobPersistenceException;
 
     /**
+     * <p>
      * Retrieve the given <code>{@link org.quartz.Trigger}</code>.
+     * </p>
      *
      * @param calName
      *          The name of the <code>Calendar</code> to be retrieved.
      * @return The desired <code>Calendar</code>, or null if there is no
      *         match.
      */
-    Calendar retrieveCalendar(String calName)
+    Calendar retrieveCalendar(SchedulingContext ctxt, String calName)
         throws JobPersistenceException;
 
     /////////////////////////////////////////////////////////////////////////////
@@ -331,101 +325,127 @@ public interface JobStore {
     /////////////////////////////////////////////////////////////////////////////
 
     /**
+     * <p>
      * Get the number of <code>{@link org.quartz.Job}</code> s that are
      * stored in the <code>JobsStore</code>.
-     */
-    int getNumberOfJobs()
-        throws JobPersistenceException;
-
-    /**
-     * Get the number of <code>{@link org.quartz.Trigger}</code> s that are
-     * stored in the <code>JobsStore</code>.
-     */
-    int getNumberOfTriggers()
-        throws JobPersistenceException;
-
-    /**
-     * Get the number of <code>{@link org.quartz.Calendar}</code> s that are
-     * stored in the <code>JobsStore</code>.
-     */
-    int getNumberOfCalendars()
-        throws JobPersistenceException;
-
-    /**
-     * Get the keys of all of the <code>{@link org.quartz.Job}</code> s that
-     * have the given group name.
-     *
-     * <p>
-     * If there are no jobs in the given group name, the result should be 
-     * an empty collection (not <code>null</code>).
      * </p>
      */
-    Set<JobKey> getJobKeys(GroupMatcher<JobKey> matcher)
+    int getNumberOfJobs(SchedulingContext ctxt)
         throws JobPersistenceException;
 
     /**
+     * <p>
+     * Get the number of <code>{@link org.quartz.Trigger}</code> s that are
+     * stored in the <code>JobsStore</code>.
+     * </p>
+     */
+    int getNumberOfTriggers(SchedulingContext ctxt)
+        throws JobPersistenceException;
+
+    /**
+     * <p>
+     * Get the number of <code>{@link org.quartz.Calendar}</code> s that are
+     * stored in the <code>JobsStore</code>.
+     * </p>
+     */
+    int getNumberOfCalendars(SchedulingContext ctxt)
+        throws JobPersistenceException;
+
+    /**
+     * <p>
+     * Get the names of all of the <code>{@link org.quartz.Job}</code> s that
+     * have the given group name.
+     * </p>
+     *
+     * <p>
+     * If there are no jobs in the given group name, the result should be a
+     * zero-length array (not <code>null</code>).
+     * </p>
+     */
+    String[] getJobNames(SchedulingContext ctxt, String groupName)
+        throws JobPersistenceException;
+
+    /**
+     * <p>
      * Get the names of all of the <code>{@link org.quartz.Trigger}</code> s
      * that have the given group name.
+     * </p>
      *
      * <p>
      * If there are no triggers in the given group name, the result should be a
      * zero-length array (not <code>null</code>).
      * </p>
      */
-    Set<TriggerKey> getTriggerKeys(GroupMatcher<TriggerKey> matcher)
+    String[] getTriggerNames(SchedulingContext ctxt, String groupName)
         throws JobPersistenceException;
 
     /**
+     * <p>
      * Get the names of all of the <code>{@link org.quartz.Job}</code>
      * groups.
+     * </p>
      *
      * <p>
      * If there are no known group names, the result should be a zero-length
      * array (not <code>null</code>).
      * </p>
      */
-    List<String> getJobGroupNames()
+    String[] getJobGroupNames(SchedulingContext ctxt)
         throws JobPersistenceException;
 
     /**
+     * <p>
      * Get the names of all of the <code>{@link org.quartz.Trigger}</code>
      * groups.
+     * </p>
      *
      * <p>
      * If there are no known group names, the result should be a zero-length
      * array (not <code>null</code>).
      * </p>
      */
-    List<String> getTriggerGroupNames()
+    String[] getTriggerGroupNames(SchedulingContext ctxt)
         throws JobPersistenceException;
 
     /**
+     * <p>
      * Get the names of all of the <code>{@link org.quartz.Calendar}</code> s
      * in the <code>JobStore</code>.
+     * </p>
      *
      * <p>
      * If there are no Calendars in the given group name, the result should be
      * a zero-length array (not <code>null</code>).
      * </p>
      */
-    List<String> getCalendarNames()
+    String[] getCalendarNames(SchedulingContext ctxt)
         throws JobPersistenceException;
 
     /**
+     * <p>
      * Get all of the Triggers that are associated to the given Job.
+     * </p>
      *
      * <p>
      * If there are no matches, a zero-length array should be returned.
      * </p>
      */
-    List<OperableTrigger> getTriggersForJob(JobKey jobKey) throws JobPersistenceException;
+    Trigger[] getTriggersForJob(SchedulingContext ctxt, String jobName,
+            String groupName) throws JobPersistenceException;
 
     /**
+     * <p>
      * Get the current state of the identified <code>{@link Trigger}</code>.
+     * </p>
      *
-     * @see Trigger.TriggerState
+     * @see Trigger#STATE_NORMAL
+     * @see Trigger#STATE_PAUSED
+     * @see Trigger#STATE_COMPLETE
+     * @see Trigger#STATE_ERROR
+     * @see Trigger#STATE_NONE
      */
-    TriggerState getTriggerState(TriggerKey triggerKey) throws JobPersistenceException;
+    int getTriggerState(SchedulingContext ctxt, String triggerName,
+            String triggerGroup) throws JobPersistenceException;
 
     /////////////////////////////////////////////////////////////////////////////
     //
@@ -434,15 +454,20 @@ public interface JobStore {
     /////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Pause the <code>{@link org.quartz.Trigger}</code> with the given key.
+     * <p>
+     * Pause the <code>{@link org.quartz.Trigger}</code> with the given name.
+     * </p>
      *
-     * @see #resumeTrigger(TriggerKey)
+     * @see #resumeTrigger(SchedulingContext, String, String)
      */
-    void pauseTrigger(TriggerKey triggerKey) throws JobPersistenceException;
+    void pauseTrigger(SchedulingContext ctxt, String triggerName,
+            String groupName) throws JobPersistenceException;
 
     /**
+     * <p>
      * Pause all of the <code>{@link org.quartz.Trigger}s</code> in the
      * given group.
+     * </p>
      *
      *
      * <p>
@@ -451,21 +476,27 @@ public interface JobStore {
      * paused.
      * </p>
      *
-     * @see #resumeTriggerGroup(String)
+     * @see #resumeTriggerGroup(SchedulingContext, String)
      */
-    Collection<String> pauseTriggers(GroupMatcher<TriggerKey> matcher) throws JobPersistenceException;
+    void pauseTriggerGroup(SchedulingContext ctxt, String groupName)
+        throws JobPersistenceException;
 
     /**
+     * <p>
      * Pause the <code>{@link org.quartz.Job}</code> with the given name - by
      * pausing all of its current <code>Trigger</code>s.
+     * </p>
      *
-     * @see #resumeJob(JobKey)
+     * @see #resumeJob(SchedulingContext, String, String)
      */
-    void pauseJob(JobKey jobKey) throws JobPersistenceException;
+    void pauseJob(SchedulingContext ctxt, String jobName,
+            String groupName) throws JobPersistenceException;
 
     /**
+     * <p>
      * Pause all of the <code>{@link org.quartz.Job}s</code> in the given
      * group - by pausing all of their <code>Trigger</code>s.
+     * </p>
      *
      * <p>
      * The JobStore should "remember" that the group is paused, and impose the
@@ -473,44 +504,52 @@ public interface JobStore {
      * paused.
      * </p>
      *
-     * @see #resumeJobGroup(String)
+     * @see #resumeJobGroup(SchedulingContext, String)
      */
-    Collection<String> pauseJobs(GroupMatcher<JobKey> groupMatcher)
+    void pauseJobGroup(SchedulingContext ctxt, String groupName)
         throws JobPersistenceException;
 
     /**
+     * <p>
      * Resume (un-pause) the <code>{@link org.quartz.Trigger}</code> with the
-     * given key.
+     * given name.
+     * </p>
      *
      * <p>
      * If the <code>Trigger</code> missed one or more fire-times, then the
      * <code>Trigger</code>'s misfire instruction will be applied.
      * </p>
      *
-     * @see #pauseTrigger(TriggerKey)
+     * @see #pauseTrigger(SchedulingContext, String, String)
      */
-    void resumeTrigger(TriggerKey triggerKey) throws JobPersistenceException;
+    void resumeTrigger(SchedulingContext ctxt, String triggerName,
+            String groupName) throws JobPersistenceException;
 
     /**
+     * <p>
      * Resume (un-pause) all of the <code>{@link org.quartz.Trigger}s</code>
      * in the given group.
+     * </p>
      *
      * <p>
      * If any <code>Trigger</code> missed one or more fire-times, then the
      * <code>Trigger</code>'s misfire instruction will be applied.
      * </p>
      *
-     * @see #pauseTriggers(String)
+     * @see #pauseTriggerGroup(SchedulingContext, String)
      */
-    Collection<String> resumeTriggers(GroupMatcher<TriggerKey> matcher)
+    void resumeTriggerGroup(SchedulingContext ctxt, String groupName)
         throws JobPersistenceException;
 
-    Set<String> getPausedTriggerGroups()
+    Set getPausedTriggerGroups(SchedulingContext ctxt)
         throws JobPersistenceException;
+
 
     /**
+     * <p>
      * Resume (un-pause) the <code>{@link org.quartz.Job}</code> with the
-     * given key.
+     * given name.
+     * </p>
      *
      * <p>
      * If any of the <code>Job</code>'s<code>Trigger</code> s missed one
@@ -518,13 +557,16 @@ public interface JobStore {
      * instruction will be applied.
      * </p>
      *
-     * @see #pauseJob(JobKey)
+     * @see #pauseJob(SchedulingContext, String, String)
      */
-    void resumeJob(JobKey jobKey) throws JobPersistenceException;
+    void resumeJob(SchedulingContext ctxt, String jobName,
+            String groupName) throws JobPersistenceException;
 
     /**
+     * <p>
      * Resume (un-pause) all of the <code>{@link org.quartz.Job}s</code> in
      * the given group.
+     * </p>
      *
      * <p>
      * If any of the <code>Job</code> s had <code>Trigger</code> s that
@@ -532,37 +574,41 @@ public interface JobStore {
      * misfire instruction will be applied.
      * </p>
      *
-     * @see #pauseJobGroup(String)
+     * @see #pauseJobGroup(SchedulingContext, String)
      */
-    Collection<String> resumeJobs(GroupMatcher<JobKey> matcher)
+    void resumeJobGroup(SchedulingContext ctxt, String groupName)
         throws JobPersistenceException;
 
     /**
+     * <p>
      * Pause all triggers - equivalent of calling <code>pauseTriggerGroup(group)</code>
      * on every group.
+     * </p>
      *
      * <p>
      * When <code>resumeAll()</code> is called (to un-pause), trigger misfire
      * instructions WILL be applied.
      * </p>
      *
-     * @see #resumeAll()
-     * @see #pauseTriggers(String)
+     * @see #resumeAll(SchedulingContext)
+     * @see #pauseTriggerGroup(SchedulingContext, String)
      */
-    void pauseAll() throws JobPersistenceException;
+    void pauseAll(SchedulingContext ctxt) throws JobPersistenceException;
 
     /**
+     * <p>
      * Resume (un-pause) all triggers - equivalent of calling <code>resumeTriggerGroup(group)</code>
      * on every group.
+     * </p>
      *
      * <p>
      * If any <code>Trigger</code> missed one or more fire-times, then the
      * <code>Trigger</code>'s misfire instruction will be applied.
      * </p>
      *
-     * @see #pauseAll()
+     * @see #pauseAll(SchedulingContext)
      */
-    void resumeAll()
+    void resumeAll(SchedulingContext ctxt)
         throws JobPersistenceException;
 
     /////////////////////////////////////////////////////////////////////////////
@@ -572,68 +618,71 @@ public interface JobStore {
     /////////////////////////////////////////////////////////////////////////////
 
     /**
+     * <p>
      * Get a handle to the next trigger to be fired, and mark it as 'reserved'
      * by the calling scheduler.
+     * </p>
      *
      * @param noLaterThan If > 0, the JobStore should only return a Trigger
      * that will fire no later than the time represented in this value as
      * milliseconds.
-     * @see #releaseAcquiredTrigger(Trigger)
+     * @see #releaseAcquiredTrigger(SchedulingContext, Trigger)
      */
-    List<OperableTrigger> acquireNextTriggers(long noLaterThan, int maxCount, long timeWindow)
+    Trigger acquireNextTrigger(SchedulingContext ctxt, long noLaterThan)
         throws JobPersistenceException;
 
     /**
+     * <p>
      * Inform the <code>JobStore</code> that the scheduler no longer plans to
      * fire the given <code>Trigger</code>, that it had previously acquired
      * (reserved).
+     * </p>
      */
-    void releaseAcquiredTrigger(OperableTrigger trigger)
+    void releaseAcquiredTrigger(SchedulingContext ctxt, Trigger trigger)
         throws JobPersistenceException;
 
     /**
+     * <p>
      * Inform the <code>JobStore</code> that the scheduler is now firing the
      * given <code>Trigger</code> (executing its associated <code>Job</code>),
      * that it had previously acquired (reserved).
+     * </p>
      *
-     * @return may return null if all the triggers or their calendars no longer exist, or
+     * @return null if the trigger or it's job or calendar no longer exist, or
      *         if the trigger was not successfully put into the 'executing'
-     *         state.  Preference is to return an empty list if none of the triggers
-     *         could be fired.
+     *         state.
      */
-    List<TriggerFiredResult> triggersFired(List<OperableTrigger> triggers) throws JobPersistenceException;
+    TriggerFiredBundle triggerFired(SchedulingContext ctxt,
+            Trigger trigger) throws JobPersistenceException;
 
     /**
+     * <p>
      * Inform the <code>JobStore</code> that the scheduler has completed the
      * firing of the given <code>Trigger</code> (and the execution of its
      * associated <code>Job</code> completed, threw an exception, or was vetoed),
      * and that the <code>{@link org.quartz.JobDataMap}</code>
      * in the given <code>JobDetail</code> should be updated if the <code>Job</code>
      * is stateful.
+     * </p>
      */
-    void triggeredJobComplete(OperableTrigger trigger, JobDetail jobDetail, CompletedExecutionInstruction triggerInstCode)
+    void triggeredJobComplete(SchedulingContext ctxt, Trigger trigger,
+            JobDetail jobDetail, int triggerInstCode)
         throws JobPersistenceException;
 
     /**
-     * Inform the <code>JobStore</code> of the Scheduler instance's Id,
-     * prior to initialize being invoked.
+     * <p>Inform the <code>JobStore</code> of the Scheduler instance's Id,
+     * prior to initialize being invoked.</p>
      *
      * @since 1.7
      */
     void setInstanceId(String schedInstId);
 
     /**
-     * Inform the <code>JobStore</code> of the Scheduler instance's name,
-     * prior to initialize being invoked.
+     * <p>Inform the <code>JobStore</code> of the Scheduler instance's name,
+     * prior to initialize being invoked.</p>
      *
      * @since 1.7
      */
     void setInstanceName(String schedName);
 
-    /**
-     * Tells the JobStore the pool size used to execute jobs
-     * @param poolSize amount of threads allocated for job execution
-     * @since 2.0
-     */
-	void setThreadPoolSize(int poolSize);
 }

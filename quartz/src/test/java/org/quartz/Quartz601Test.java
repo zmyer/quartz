@@ -15,10 +15,12 @@
  */
 package org.quartz;
 
+import junit.framework.TestCase;
+
 import java.text.ParseException;
 import java.util.Set;
 
-import junit.framework.TestCase;
+import org.quartz.*;
 
 public class Quartz601Test extends TestCase {
 
@@ -49,17 +51,17 @@ public class Quartz601Test extends TestCase {
           assertParsesForField("58 5 21 ? 11-2 FRI", 4);
     }
     public void testAmbiguous() {
-          assertParsesForField("0 0 14-6 ? * FRI-MON", 2);
-          assertParsesForField("0 0 14-6 ? * FRI-MON", 5);
+          System.err.println( assertParsesForField("0 0 14-6 ? * FRI-MON", 2) );
+          System.err.println( assertParsesForField("0 0 14-6 ? * FRI-MON", 5) );
 
-          assertParsesForField("55-3 56-2 6 ? * FRI", 0);
-          assertParsesForField("55-3 56-2 6 ? * FRI", 1);
+          System.err.println( assertParsesForField("55-3 56-2 6 ? * FRI", 0) );
+          System.err.println( assertParsesForField("55-3 56-2 6 ? * FRI", 1) );
     }
 
-    private Set<Integer> assertParsesForField(String expression, int constant) {
+    private Set assertParsesForField(String expression, int constant) {
         try {
-            SimpleCronExpression cronExpression = new SimpleCronExpression(expression);
-            Set<Integer> set = cronExpression.getSetPublic(constant);
+            TestCronExpression cronExpression = new TestCronExpression(expression);
+            Set set = cronExpression.getSetPublic(constant);
             if(set.size() == 0) {
                 fail("Empty field ["+constant+"] returned for " + expression);
             }
@@ -72,13 +74,13 @@ public class Quartz601Test extends TestCase {
 
 }
 
-class SimpleCronExpression extends CronExpression {
+class TestCronExpression extends CronExpression {
 
-    public SimpleCronExpression(String cronExpression) throws ParseException {
+    public TestCronExpression(String cronExpression) throws ParseException {
         super(cronExpression);
     }
 
-    public Set<Integer> getSetPublic(int constant) {
+    public Set getSetPublic(int constant) {
         return super.getSet(constant);
     }
 

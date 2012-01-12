@@ -18,6 +18,8 @@
 
 package org.quartz.core;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.quartz.Job;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
@@ -25,13 +27,10 @@ import org.quartz.JobExecutionException;
 import org.quartz.JobPersistenceException;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
-import org.quartz.Trigger.CompletedExecutionInstruction;
-import org.quartz.impl.JobExecutionContextImpl;
+import org.quartz.SchedulerListener;
+import org.quartz.Trigger;
 import org.quartz.listeners.SchedulerListenerSupport;
-import org.quartz.spi.OperableTrigger;
 import org.quartz.spi.TriggerFiredBundle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -65,13 +64,16 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
-    protected JobExecutionContextImpl jec = null;
+
+    protected JobExecutionContext jec = null;
 
     protected QuartzScheduler qs = null;
-    
-    protected TriggerFiredBundle firedTriggerBundle = null;
 
     protected Scheduler scheduler = null;
+
+    protected SchedulingContext schdCtxt = null;
+
+    protected JobRunShellFactory jobRunShellFactory = null;
 
     protected volatile boolean shutdownRequested = false;
 
@@ -100,9 +102,13 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
      *          the <code>SchedulingContext</code> that should be used by the
      *          <code>JobRunShell</code> when making updates to the <code>JobStore</code>.
      */
-    public JobRunShell(Scheduler scheduler, TriggerFiredBundle bndle) {
+    public JobRunShell(JobRunShellFactory jobRunShellFactory,
+            Scheduler scheduler, SchedulingContext schdCtxt) {
+        this.jobRunShellFactory = jobRunShellFactory;
         this.scheduler = scheduler;
-        this.firedTriggerBundle = bndle;
+        this.schdCtxt = schdCtxt;
+
+
     }
 
     /*
@@ -113,41 +119,41 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
 
+
     @Override
     public void schedulerShuttingdown() {
         requestShutdown();
     }
 
-    @Override
     protected Logger getLog() {
         return log;
     }
 
-    public void initialize(QuartzScheduler sched)
+    public void initialize(QuartzScheduler qs, TriggerFiredBundle firedBundle)
         throws SchedulerException {
-        this.qs = sched;
+        this.qs = qs;
 
         Job job = null;
-        JobDetail jobDetail = firedTriggerBundle.getJobDetail();
+        JobDetail jobDetail = firedBundle.getJobDetail();
 
         try {
-            job = sched.getJobFactory().newJob(firedTriggerBundle, scheduler);
+            job = qs.getJobFactory().newJob(firedBundle);
         } catch (SchedulerException se) {
-            sched.notifySchedulerListenersError(
+            qs.notifySchedulerListenersError(
                     "An error occured instantiating job to be executed. job= '"
-                            + jobDetail.getKey() + "'", se);
+                            + jobDetail.getFullName() + "'", se);
             throw se;
         } catch (Throwable ncdfe) { // such as NoClassDefFoundError
             SchedulerException se = new SchedulerException(
                     "Problem instantiating class '"
                             + jobDetail.getJobClass().getName() + "' - ", ncdfe);
-            sched.notifySchedulerListenersError(
+            qs.notifySchedulerListenersError(
                     "An error occured instantiating job to be executed. job= '"
-                            + jobDetail.getKey() + "'", se);
+                            + jobDetail.getFullName() + "'", se);
             throw se;
         }
 
-        this.jec = new JobExecutionContextImpl(scheduler, firedTriggerBundle, job);
+        this.jec = new JobExecutionContext(scheduler, firedBundle, job);
     }
 
     public void requestShutdown() {
@@ -155,10 +161,14 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
     }
 
     public void run() {
-        qs.addInternalSchedulerListener(this);
+        try {
+            scheduler.addSchedulerListener(this);
+        } catch (SchedulerException ignore) {
+            // can never happen on a local scheduler - which by definition this will be (since we are executing on it)
+        }
 
         try {
-            OperableTrigger trigger = (OperableTrigger) jec.getTrigger();
+            Trigger trigger = jec.getTrigger();
             JobDetail jobDetail = jec.getJobDetail();
 
             do {
@@ -170,7 +180,7 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
                     begin();
                 } catch (SchedulerException se) {
                     qs.notifySchedulerListenersError("Error executing Job ("
-                            + jec.getJobDetail().getKey()
+                            + jec.getJobDetail().getFullName()
                             + ": couldn't begin execution.", se);
                     break;
                 }
@@ -182,23 +192,23 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
                     }
                 } catch(VetoedException ve) {
                     try {
-                        CompletedExecutionInstruction instCode = trigger.executionComplete(jec, null);
+                        int instCode = trigger.executionComplete(jec, null);
                         try {
-                            qs.notifyJobStoreJobVetoed(trigger, jobDetail, instCode);
+                            qs.notifyJobStoreJobVetoed(schdCtxt, trigger, jobDetail, instCode);
                         } catch(JobPersistenceException jpe) {
                             vetoedJobRetryLoop(trigger, jobDetail, instCode);
                         }
-                        
-                        // QTZ-205
-                        // Even if trigger got vetoed, we still needs to check to see if it's the trigger's finalized run or not.
-                        if (jec.getTrigger().getNextFireTime() == null) {
-                            qs.notifySchedulerListenersFinalized(jec.getTrigger());
-                        }
-
+						
+						// QTZ-205
+						// Even if trigger got vetoed, we still needs to check to see if it's the trigger's finalized run or not.
+						if (jec.getTrigger().getNextFireTime() == null) {
+							qs.notifySchedulerListenersFinalized(jec.getTrigger());
+						}
+						
                         complete(true);
                     } catch (SchedulerException se) {
                         qs.notifySchedulerListenersError("Error during veto of Job ("
-                                + jec.getJobDetail().getKey()
+                                + jec.getJobDetail().getFullName()
                                 + ": couldn't finalize execution.", se);
                     }
                     break;
@@ -209,24 +219,26 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
 
                 // execute the job
                 try {
-                    log.debug("Calling execute on job " + jobDetail.getKey());
+                    log.debug("Calling execute on job " + jobDetail.getFullName());
                     job.execute(jec);
                     endTime = System.currentTimeMillis();
                 } catch (JobExecutionException jee) {
                     endTime = System.currentTimeMillis();
                     jobExEx = jee;
-                    getLog().info("Job " + jobDetail.getKey() +
+                    getLog().info("Job " + jobDetail.getFullName() +
                             " threw a JobExecutionException: ", jobExEx);
                 } catch (Throwable e) {
                     endTime = System.currentTimeMillis();
-                    getLog().error("Job " + jobDetail.getKey() +
+                    getLog().error("Job " + jobDetail.getFullName() +
                             " threw an unhandled Exception: ", e);
                     SchedulerException se = new SchedulerException(
                             "Job threw an unhandled exception.", e);
+                    se.setErrorCode(SchedulerException.ERR_JOB_EXECUTION_THREW_EXCEPTION);
                     qs.notifySchedulerListenersError("Job ("
-                            + jec.getJobDetail().getKey()
+                            + jec.getJobDetail().getFullName()
                             + " threw an exception.", se);
                     jobExEx = new JobExecutionException(se, false);
+                    jobExEx.setErrorCode(JobExecutionException.ERR_JOB_EXECUTION_THREW_EXCEPTION);
                 }
 
                 jec.setJobRunTime(endTime - startTime);
@@ -236,7 +248,7 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
                     break;
                 }
 
-                CompletedExecutionInstruction instCode = CompletedExecutionInstruction.NOOP;
+                int instCode = Trigger.INSTRUCTION_NOOP;
 
                 // update the trigger
                 try {
@@ -245,6 +257,7 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
                     // If this happens, there's a bug in the trigger...
                     SchedulerException se = new SchedulerException(
                             "Trigger threw an unhandled exception.", e);
+                    se.setErrorCode(SchedulerException.ERR_TRIGGER_THREW_EXCEPTION);
                     qs.notifySchedulerListenersError(
                             "Please report this error to the Quartz developers.",
                             se);
@@ -256,13 +269,13 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
                 }
 
                 // update job/trigger or re-execute job
-                if (instCode == CompletedExecutionInstruction.RE_EXECUTE_JOB) {
+                if (instCode == Trigger.INSTRUCTION_RE_EXECUTE_JOB) {
                     jec.incrementRefireCount();
                     try {
                         complete(false);
                     } catch (SchedulerException se) {
                         qs.notifySchedulerListenersError("Error executing Job ("
-                                + jec.getJobDetail().getKey()
+                                + jec.getJobDetail().getFullName()
                                 + ": couldn't finalize execution.", se);
                     }
                     continue;
@@ -272,17 +285,18 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
                     complete(true);
                 } catch (SchedulerException se) {
                     qs.notifySchedulerListenersError("Error executing Job ("
-                            + jec.getJobDetail().getKey()
+                            + jec.getJobDetail().getFullName()
                             + ": couldn't finalize execution.", se);
                     continue;
                 }
 
                 try {
-                    qs.notifyJobStoreJobComplete(trigger, jobDetail, instCode);
+                    qs.notifyJobStoreJobComplete(schdCtxt, trigger, jobDetail,
+                            instCode);
                 } catch (JobPersistenceException jpe) {
                     qs.notifySchedulerListenersError(
                             "An error occured while marking executed job complete. job= '"
-                                    + jobDetail.getKey() + "'", jpe);
+                                    + jobDetail.getFullName() + "'", jpe);
                     if (!completeTriggerRetryLoop(trigger, jobDetail, instCode)) {
                         return;
                     }
@@ -292,7 +306,12 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
             } while (true);
 
         } finally {
-            qs.removeInternalSchedulerListener(this);
+            try {
+                scheduler.removeSchedulerListener(this);
+            } catch (SchedulerException e) {
+                // can never happen on a local scheduler - which by definition this will be (since we are executing on it)
+            }
+            jobRunShellFactory.returnJobRunShell(this);
         }
     }
 
@@ -308,33 +327,33 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
         qs = null;
     }
 
-    private boolean notifyListenersBeginning(JobExecutionContext jobExCtxt) throws VetoedException {
+    private boolean notifyListenersBeginning(JobExecutionContext jec) throws VetoedException {
 
         boolean vetoed = false;
 
         // notify all trigger listeners
         try {
-            vetoed = qs.notifyTriggerListenersFired(jobExCtxt);
+            vetoed = qs.notifyTriggerListenersFired(jec);
         } catch (SchedulerException se) {
             qs.notifySchedulerListenersError(
                     "Unable to notify TriggerListener(s) while firing trigger "
                             + "(Trigger and Job will NOT be fired!). trigger= "
-                            + jobExCtxt.getTrigger().getKey() + " job= "
-                            + jobExCtxt.getJobDetail().getKey(), se);
+                            + jec.getTrigger().getFullName() + " job= "
+                            + jec.getJobDetail().getFullName(), se);
 
             return false;
         }
 
         if(vetoed) {
             try {
-                qs.notifyJobListenersWasVetoed(jobExCtxt);
+                qs.notifyJobListenersWasVetoed(jec);
             } catch (SchedulerException se) {
                 qs.notifySchedulerListenersError(
                         "Unable to notify JobListener(s) of vetoed execution " +
                         "while firing trigger (Trigger and Job will NOT be " +
                         "fired!). trigger= "
-                        + jobExCtxt.getTrigger().getKey() + " job= "
-                        + jobExCtxt.getJobDetail().getKey(), se);
+                        + jec.getTrigger().getFullName() + " job= "
+                        + jec.getJobDetail().getFullName(), se);
 
             }
             throw new VetoedException();
@@ -342,13 +361,13 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
 
         // notify all job listeners
         try {
-            qs.notifyJobListenersToBeExecuted(jobExCtxt);
+            qs.notifyJobListenersToBeExecuted(jec);
         } catch (SchedulerException se) {
             qs.notifySchedulerListenersError(
                     "Unable to notify JobListener(s) of Job to be executed: "
                             + "(Job will NOT be executed!). trigger= "
-                            + jobExCtxt.getTrigger().getKey() + " job= "
-                            + jobExCtxt.getJobDetail().getKey(), se);
+                            + jec.getTrigger().getFullName() + " job= "
+                            + jec.getJobDetail().getFullName(), se);
 
             return false;
         }
@@ -356,15 +375,16 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
         return true;
     }
 
-    private boolean notifyJobListenersComplete(JobExecutionContext jobExCtxt, JobExecutionException jobExEx) {
+    private boolean notifyJobListenersComplete(JobExecutionContext jec,
+            JobExecutionException jobExEx) {
         try {
-            qs.notifyJobListenersWasExecuted(jobExCtxt, jobExEx);
+            qs.notifyJobListenersWasExecuted(jec, jobExEx);
         } catch (SchedulerException se) {
             qs.notifySchedulerListenersError(
                     "Unable to notify JobListener(s) of Job that was executed: "
                             + "(error will be ignored). trigger= "
-                            + jobExCtxt.getTrigger().getKey() + " job= "
-                            + jobExCtxt.getJobDetail().getKey(), se);
+                            + jec.getTrigger().getFullName() + " job= "
+                            + jec.getJobDetail().getFullName(), se);
 
             return false;
         }
@@ -372,38 +392,41 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
         return true;
     }
 
-    private boolean notifyTriggerListenersComplete(JobExecutionContext jobExCtxt, CompletedExecutionInstruction instCode) {
+    private boolean notifyTriggerListenersComplete(JobExecutionContext jec,
+            int instCode) {
         try {
-            qs.notifyTriggerListenersComplete(jobExCtxt, instCode);
+            qs.notifyTriggerListenersComplete(jec, instCode);
 
         } catch (SchedulerException se) {
             qs.notifySchedulerListenersError(
                     "Unable to notify TriggerListener(s) of Job that was executed: "
                             + "(error will be ignored). trigger= "
-                            + jobExCtxt.getTrigger().getKey() + " job= "
-                            + jobExCtxt.getJobDetail().getKey(), se);
+                            + jec.getTrigger().getFullName() + " job= "
+                            + jec.getJobDetail().getFullName(), se);
 
             return false;
         }
-        if (jobExCtxt.getTrigger().getNextFireTime() == null) {
-            qs.notifySchedulerListenersFinalized(jobExCtxt.getTrigger());
+        if (jec.getTrigger().getNextFireTime() == null) {
+            qs.notifySchedulerListenersFinalized(jec.getTrigger());
         }
 
         return true;
     }
 
-    public boolean completeTriggerRetryLoop(OperableTrigger trigger, JobDetail jobDetail, CompletedExecutionInstruction instCode) {
+    public boolean completeTriggerRetryLoop(Trigger trigger,
+            JobDetail jobDetail, int instCode) {
         long count = 0;
-        while (!shutdownRequested && !qs.isShuttingDown()) {
+        while (!shutdownRequested) {
             try {
-                Thread.sleep(qs.getDbRetryInterval()); // retry per config setting (the db connection must be failed)
-                qs.notifyJobStoreJobComplete(trigger, jobDetail, instCode);
+            	Thread.sleep(qs.getDbRetryInterval()); // retry per config setting (the db connection must be failed)
+                qs.notifyJobStoreJobComplete(schdCtxt, trigger, jobDetail,
+                        instCode);
                 return true;
             } catch (JobPersistenceException jpe) {
                 if(count % 4 == 0)
                     qs.notifySchedulerListenersError(
                         "An error occured while marking executed job complete (will continue attempts). job= '"
-                                + jobDetail.getKey() + "'", jpe);
+                                + jobDetail.getFullName() + "'", jpe);
             } catch (InterruptedException ignore) {
             }
             count++;
@@ -411,23 +434,23 @@ public class JobRunShell extends SchedulerListenerSupport implements Runnable {
         return false;
     }
 
-    public boolean vetoedJobRetryLoop(OperableTrigger trigger, JobDetail jobDetail, CompletedExecutionInstruction instCode) {
+    public boolean vetoedJobRetryLoop(Trigger trigger, JobDetail jobDetail, int instCode) {
         while (!shutdownRequested) {
             try {
-                Thread.sleep(qs.getDbRetryInterval()); // retry per config setting (the db connection must be failed)
-                qs.notifyJobStoreJobVetoed(trigger, jobDetail, instCode);
+            	Thread.sleep(qs.getDbRetryInterval()); // retry per config setting (the db connection must be failed)
+                qs.notifyJobStoreJobVetoed(schdCtxt, trigger, jobDetail, instCode);
                 return true;
             } catch (JobPersistenceException jpe) {
                 qs.notifySchedulerListenersError(
                         "An error occured while marking executed job vetoed. job= '"
-                                + jobDetail.getKey() + "'", jpe);
+                                + jobDetail.getFullName() + "'", jpe);
             } catch (InterruptedException ignore) {
             }
         }
         return false;
     }
 
-    static class VetoedException extends Exception {
+    class VetoedException extends Exception {
         public VetoedException() {
         }
     }

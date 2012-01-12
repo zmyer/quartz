@@ -25,11 +25,10 @@ import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import org.quartz.JobKey;
 
 /**
  * <p>
- * A dumb implementation of Job, for unit testing purposes.
+ * A dumb implementation of Job, for unittesting purposes.
  * </p>
  * 
  * @author James House
@@ -60,13 +59,13 @@ public class SimpleRecoveryJob implements Job {
     public void execute(JobExecutionContext context)
         throws JobExecutionException {
 
-        JobKey jobKey = context.getJobDetail().getKey();
+        String jobName = context.getJobDetail().getFullName();
 
         // if the job is recovering print a message
         if (context.isRecovering()) {
-            _log.info("SimpleRecoveryJob: " + jobKey + " RECOVERING at " + new Date());
+            _log.info("SimpleRecoveryJob: " + jobName + " RECOVERING at " + new Date());
         } else {
-            _log.info("SimpleRecoveryJob: " + jobKey + " starting at " + new Date());
+            _log.info("SimpleRecoveryJob: " + jobName + " starting at " + new Date());
         }
 
         // delay for ten seconds
@@ -86,7 +85,7 @@ public class SimpleRecoveryJob implements Job {
         count++;
         data.put(COUNT, count);
         
-        _log.info("SimpleRecoveryJob: " + jobKey + 
+        _log.info("SimpleRecoveryJob: " + jobName + 
                 " done at " + new Date() + 
                 "\n Execution #" + count);
          
