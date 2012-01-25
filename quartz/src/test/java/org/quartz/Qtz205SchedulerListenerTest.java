@@ -16,7 +16,7 @@
 package org.quartz;
 
 import static org.quartz.JobBuilder.newJob;
-import static org.quartz.SimpleScheduleBuilder.*;
+import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 import static org.quartz.TriggerBuilder.newTrigger;
 
 import java.util.Properties;
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Zemian Deng <saltnlight5@gmail.com>
  */
-public class Qtz205SchedulerListenerTest  {
+public class Qtz205SchedulerListenerTest {
 	private static Logger logger = LoggerFactory.getLogger(Qtz205SchedulerListenerTest.class);
 	
 	public static class Qtz205Job implements Job {
@@ -147,6 +147,7 @@ public class Qtz205SchedulerListenerTest  {
 	}
 	
 	/** QTZ-205 */
+
 	@Test
 	public void testTriggerFinalized() throws Exception {
 		Qtz205TriggerListener triggerListener = new Qtz205TriggerListener();
