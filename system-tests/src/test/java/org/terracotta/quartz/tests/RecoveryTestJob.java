@@ -36,11 +36,8 @@ public class RecoveryTestJob implements Job {
       } catch (Exception e) {
         throw new JobExecutionException(e);
       }
-      try {
-        Thread.currentThread().join();
-      } catch (InterruptedException ex) {
-        throw new JobExecutionException(ex);
-      }
+
+      System.exit(0);
     } else {
       assertThat(context.getMergedJobDataMap().getBooleanValue(RecoveryTest.class.getName()), is(true));
       try {

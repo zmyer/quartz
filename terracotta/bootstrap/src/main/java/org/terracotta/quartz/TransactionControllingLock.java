@@ -91,11 +91,8 @@ class TransactionControllingLock implements ToolkitLock {
 
   @Override
   public void unlock() {
-    try {
-      threadState.get().unlock();
-    } finally {
-      delegate.unlock();
-    }
+    threadState.get().unlock();
+    delegate.unlock();
   }
 
   @Override

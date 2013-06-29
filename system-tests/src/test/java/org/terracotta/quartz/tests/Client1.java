@@ -55,7 +55,5 @@ public class Client1 extends ClientBase {
     scheduler.scheduleJob(trigger);
 
     localBarrier.await();
-    pass();
-    Runtime.getRuntime().halt(0);
   }
 }

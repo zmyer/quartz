@@ -60,8 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.terracotta.toolkit.rejoin.RejoinException;
-
 /**
  * <p>
  * This class implements a <code>{@link org.quartz.spi.JobStore}</code> that utilizes Terracotta as its storage device.
@@ -162,20 +160,12 @@ class DefaultClusteredJobStore implements ClusteredJobStore {
 
   void lock() throws JobPersistenceException {
     getLocalLockState().attemptAcquireBegin();
-    try {
-      lock.lock();
-    } catch (RejoinException e) {
-      getLocalLockState().release();
-      throw e;
-    }
+    lock.lock();
   }
 
   void unlock() {
-    try {
-      lock.unlock();
-    } finally {
-      getLocalLockState().release();
-    }
+    lock.unlock();
+    getLocalLockState().release();
   }
 
   /**
@@ -336,6 +326,8 @@ class DefaultClusteredJobStore implements ClusteredJobStore {
       jd.put(Scheduler.FAILED_JOB_ORIGINAL_TRIGGER_SCHEDULED_FIRETIME_IN_MILLISECONDS, String.valueOf(recovering.getScheduledFireTime()));
 
       recoveryTrigger.setJobDataMap(jd);
+      jobWrapper.setJobDataMap(jd, jobFacade);
+
       recoveryTrigger.computeFirstFireTime(null);
 
       try {
