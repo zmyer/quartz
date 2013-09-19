@@ -239,7 +239,7 @@ public class PoolingConnectionProvider implements ConnectionProvider {
      * subclass's constructor.
      * </p>
      */
-    public ComboPooledDataSource getDataSource() {
+    protected ComboPooledDataSource getDataSource() {
         return datasource;
     }
 

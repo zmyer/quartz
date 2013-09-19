@@ -138,9 +138,5 @@ public class DBConnectionManager {
 
         provider.shutdown();
 
-    }
-
-    ConnectionProvider getConnectionProvider(String key) {
-        return providers.get(key);
-    }
+    }    
 }
