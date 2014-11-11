@@ -87,12 +87,13 @@ public class JobClassNotFoundExceptionErrorsTriggersTest extends QuartzDatabaseT
         JobDetail goodJob = JobBuilder.newJob(GoodJob.class).withIdentity("good").build();
         JobDetail badJob = JobBuilder.newJob(BadJob.class).withIdentity("bad").build();
 
+        long now = System.currentTimeMillis();
         Trigger goodTrigger = TriggerBuilder.newTrigger().withIdentity("good").forJob(goodJob)
-                .startAt(new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5)))
+                .startAt(new Date(now + 1))
                 .build();
         
         Trigger badTrigger = TriggerBuilder.newTrigger().withIdentity("bad").forJob(badJob)
-                .startAt(new Date(System.currentTimeMillis()))
+                .startAt(new Date(now))
                 .build();
 
         Map<JobDetail, Set<? extends Trigger>> toSchedule = new HashMap<JobDetail, Set<? extends Trigger>>();
