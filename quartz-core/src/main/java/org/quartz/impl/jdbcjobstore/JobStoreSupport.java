@@ -1202,7 +1202,7 @@ public abstract class JobStoreSupport implements JobStore, Constants {
             }
 
             if(job == null) {
-                job = getDelegate().selectJobDetail(conn, newTrigger.getJobKey(), getClassLoadHelper());
+                job = retrieveJob(conn, newTrigger.getJobKey());
             }
             if (job == null) {
                 throw new JobPersistenceException("The job ("
@@ -2813,7 +2813,19 @@ public abstract class JobStoreSupport implements JobStore, Constants {
                     // If trigger's job is set as @DisallowConcurrentExecution, and it has already been added to result, then
                     // put it back into the timeTriggers set and continue to search for next trigger.
                     JobKey jobKey = nextTrigger.getJobKey();
-                    JobDetail job = getDelegate().selectJobDetail(conn, jobKey, getClassLoadHelper());
+                    JobDetail job;
+                    try {
+                        job = retrieveJob(conn, jobKey);
+                    } catch (JobPersistenceException jpe) {
+                        try {
+                            getLog().error("Error retrieving job, setting trigger state to ERROR.", jpe);
+                            getDelegate().updateTriggerState(conn, triggerKey, STATE_ERROR);
+                        } catch (SQLException sqle) {
+                            getLog().error("Unable to set trigger state to ERROR.", sqle);
+                        }
+                        continue;
+                    }
+                    
                     if (job.isConcurrentExectionDisallowed()) {
                         if (acquiredJobKeysForNoConcurrentExec.contains(jobKey)) {
                             continue; // next trigger
