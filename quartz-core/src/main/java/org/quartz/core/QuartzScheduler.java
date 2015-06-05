@@ -330,7 +330,7 @@ public class QuartzScheduler implements RemotableQuartzScheduler {
     
     private boolean shouldRunUpdateCheck() {
         if(resources.isRunUpdateCheck() && !Boolean.getBoolean(StdSchedulerFactory.PROP_SCHED_SKIP_UPDATE_CHECK) &&
-                !Boolean.getBoolean("org.terracotta.quartz.skipUpdateCheck")) {
+                Boolean.getBoolean("org.terracotta.quartz.enableUpdateCheck")) {
             return true;
         }
         return false;

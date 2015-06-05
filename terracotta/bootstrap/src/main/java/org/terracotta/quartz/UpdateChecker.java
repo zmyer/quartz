@@ -60,7 +60,7 @@ public class UpdateChecker extends TimerTask {
    */
   public void checkForUpdate() {
     try {
-      if (!Boolean.getBoolean("org.terracotta.quartz.skipUpdateCheck")) {
+      if (!Boolean.getBoolean("org.terracotta.quartz.enableUpdateCheck")) {
         doCheck();
       }
     } catch (Throwable t) {

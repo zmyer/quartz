@@ -393,7 +393,7 @@ public class PlainTerracottaJobStore<T extends ClusteredJobStore> implements Ter
   }
 
   private void scheduleUpdateCheck() {
-    if (!Boolean.getBoolean("org.terracotta.quartz.skipUpdateCheck")) {
+    if (!Boolean.getBoolean("org.terracotta.quartz.enableUpdateCheck")) {
       updateCheckTimer = new Timer("Update Checker", true);
       updateCheckTimer.scheduleAtFixedRate(new UpdateChecker(), 100, WEEKLY);
     }
