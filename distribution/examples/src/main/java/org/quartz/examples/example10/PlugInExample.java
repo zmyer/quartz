@@ -18,6 +18,7 @@
 package org.quartz.examples.example10;
 
 import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
 import org.quartz.SchedulerMetaData;
 import org.quartz.impl.StdSchedulerFactory;
@@ -36,7 +37,14 @@ public class PlugInExample {
 
     // First we must get a reference to a scheduler
     SchedulerFactory sf = new StdSchedulerFactory();
-    Scheduler sched = sf.getScheduler();
+    Scheduler sched = null;
+    try {
+      sched = sf.getScheduler();
+    } catch (NoClassDefFoundError e) {
+      log.error(" Unable to load a class - most likely you do not have jta.jar on the classpath. If not present in the examples/lib folder, please " +
+                "add it there for this sample to run.", e);
+      return;
+    }
 
     log.info("------- Initialization Complete -----------");
 

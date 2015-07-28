@@ -170,6 +170,13 @@
                   <artifactId>quartz-examples</artifactId>
                   <version>${project.version}</version>
                 </dependency>
+                <!-- non public dependency necessary for running example 10 without adding jta.jar in examples/lib -->
+                <dependency>
+                  <groupId>gf-3122</groupId>
+                  <artifactId>gf.javax.transaction</artifactId>
+                  <version>1.1</version>
+                  <optional>true</optional>
+                </dependency>
               </dependencies>
             </resource>            
           </resources>
