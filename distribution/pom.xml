@@ -178,7 +178,13 @@
                   <optional>true</optional>
                 </dependency>
               </dependencies>
-            </resource>            
+            </resource>
+            <!-- examples src -->
+            <resource>
+              <targetPath>${root.dir}/examples/src</targetPath>
+              <directory>${project.basedir}/examples/src/main/java</directory>
+              <preservePath>true</preservePath>
+            </resource>
           </resources>
         </configuration>
         <executions>
