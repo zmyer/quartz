@@ -61,7 +61,7 @@ public class QTZ336_MissSchedulingChangeSignalTest {
         } finally {
             propertiesIs.close();
         }
-        properties.setProperty("org.quartz.scheduler.enableUpdateCheck", "false");
+        properties.setProperty("org.quartz.scheduler.skipUpdateCheck", "true");
         // Use a custom RAMJobStore to produce context switches leading to the race condition
         properties.setProperty("org.quartz.jobStore.class", SlowRAMJobStore.class.getName());
         SchedulerFactory sf = new StdSchedulerFactory(properties);

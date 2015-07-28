@@ -69,7 +69,7 @@ public class QTZ179_TriggerLostAfterDbRestart_Test {
         
         properties.put("org.quartz.scheduler.instanceName","TestScheduler");
         properties.put("org.quartz.scheduler.instanceId","AUTO");
-        properties.put("org.quartz.scheduler.enableUpdateCheck","false");
+        properties.put("org.quartz.scheduler.skipUpdateCheck","true");
         properties.put("org.quartz.threadPool.class","org.quartz.simpl.SimpleThreadPool");
         properties.put("org.quartz.threadPool.threadCount","12");
         properties.put("org.quartz.threadPool.threadPriority","5");
