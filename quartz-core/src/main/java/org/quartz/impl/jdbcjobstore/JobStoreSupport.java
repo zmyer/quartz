@@ -2792,8 +2792,6 @@ public abstract class JobStoreSupport implements JobStore, Constants {
         Set<JobKey> acquiredJobKeysForNoConcurrentExec = new HashSet<JobKey>();
         final int MAX_DO_LOOP_RETRY = 3;
         int currentLoopCount = 0;
-        long firstAcquiredTriggerFireTime = 0;
-        
         do {
             currentLoopCount ++;
             try {
@@ -2802,7 +2800,9 @@ public abstract class JobStoreSupport implements JobStore, Constants {
                 // No trigger is ready to fire yet.
                 if (keys == null || keys.size() == 0)
                     return acquiredTriggers;
-                
+
+                long batchEnd = noLaterThan;
+
                 for(TriggerKey triggerKey: keys) {
                     // If our trigger is no longer available, try a new one.
                     OperableTrigger nextTrigger = retrieveTrigger(conn, triggerKey);
@@ -2834,6 +2834,9 @@ public abstract class JobStoreSupport implements JobStore, Constants {
                         }
                     }
                     
+                    if (nextTrigger.getNextFireTime().getTime() > batchEnd) {
+                      break;
+                    }
                     // We now have a acquired trigger, let's add to return list.
                     // If our trigger was no longer in the expected state, try a new one.
                     int rowsUpdated = getDelegate().updateTriggerStateFromOtherState(conn, triggerKey, STATE_ACQUIRED, STATE_WAITING);
@@ -2843,9 +2846,10 @@ public abstract class JobStoreSupport implements JobStore, Constants {
                     nextTrigger.setFireInstanceId(getFiredTriggerRecordId());
                     getDelegate().insertFiredTrigger(conn, nextTrigger, STATE_ACQUIRED, null);
 
+                    if(acquiredTriggers.isEmpty()) {
+                        batchEnd = Math.max(nextTrigger.getNextFireTime().getTime(), System.currentTimeMillis()) + timeWindow;
+                    }
                     acquiredTriggers.add(nextTrigger);
-                    if(firstAcquiredTriggerFireTime == 0)
-                        firstAcquiredTriggerFireTime = nextTrigger.getNextFireTime().getTime();
                 }
 
                 // if we didn't end up with any trigger to fire from that first

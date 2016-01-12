@@ -22,15 +22,8 @@ import java.util.Set;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
-import org.quartz.JobBuilder;
-import org.quartz.JobDetail;
-import org.quartz.JobKey;
-import org.quartz.ObjectAlreadyExistsException;
-import org.quartz.SimpleScheduleBuilder;
-import org.quartz.Trigger;
+import org.hamcrest.collection.IsIterableContainingInOrder;
 import org.quartz.Trigger.TriggerState;
-import org.quartz.TriggerBuilder;
-import org.quartz.TriggerKey;
 import org.quartz.impl.JobDetailImpl;
 import org.quartz.impl.jdbcjobstore.JobStoreSupport;
 import org.quartz.impl.matchers.GroupMatcher;
@@ -40,6 +33,10 @@ import org.quartz.spi.ClassLoadHelper;
 import org.quartz.spi.JobStore;
 import org.quartz.spi.OperableTrigger;
 import org.quartz.spi.SchedulerSignaler;
+
+import static org.hamcrest.beans.HasPropertyWithValue.hasProperty;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for JobStores.  These tests were submitted by Johannes Zillmann
@@ -126,8 +123,7 @@ public abstract class AbstractJobStoreTest extends TestCase {
     @SuppressWarnings("deprecation")
     public void testAcquireNextTriggerBatch() throws Exception {
     	
-    	Date baseFireTimeDate = DateBuilder.evenMinuteDateAfterNow();
-    	long baseFireTime = baseFireTimeDate.getTime();
+    	long baseFireTime = System.currentTimeMillis() - 1000;
     	
         OperableTrigger early =
             new SimpleTriggerImpl("early", "triggerGroup1", this.fJobDetail.getName(),
@@ -139,16 +135,16 @@ public abstract class AbstractJobStoreTest extends TestCase {
                     new Date(baseFireTime + 200005), 2, 2000);
         OperableTrigger trigger2 =
             new SimpleTriggerImpl("trigger2", "triggerGroup1", this.fJobDetail.getName(),
-                    this.fJobDetail.getGroup(), new Date(baseFireTime + 200100),
-                    new Date(baseFireTime + 200105), 2, 2000);
+                    this.fJobDetail.getGroup(), new Date(baseFireTime + 210000),
+                    new Date(baseFireTime + 210005), 2, 2000);
         OperableTrigger trigger3 =
             new SimpleTriggerImpl("trigger3", "triggerGroup1", this.fJobDetail.getName(),
-                    this.fJobDetail.getGroup(), new Date(baseFireTime + 200200),
-                    new Date(baseFireTime + 200205), 2, 2000);
+                    this.fJobDetail.getGroup(), new Date(baseFireTime + 220000),
+                    new Date(baseFireTime + 220005), 2, 2000);
         OperableTrigger trigger4 =
             new SimpleTriggerImpl("trigger4", "triggerGroup1", this.fJobDetail.getName(),
-                    this.fJobDetail.getGroup(), new Date(baseFireTime + 200300),
-                    new Date(baseFireTime + 200305), 2, 2000);
+                    this.fJobDetail.getGroup(), new Date(baseFireTime + 230000),
+                    new Date(baseFireTime + 230005), 2, 2000);
 
         OperableTrigger trigger10 =
             new SimpleTriggerImpl("trigger10", "triggerGroup2", this.fJobDetail.getName(),
@@ -156,6 +152,7 @@ public abstract class AbstractJobStoreTest extends TestCase {
                     new Date(baseFireTime + 700000), 2, 2000);
 
         early.computeFirstFireTime(null);
+        early.setMisfireInstruction(Trigger.MISFIRE_INSTRUCTION_IGNORE_MISFIRE_POLICY);
         trigger1.computeFirstFireTime(null);
         trigger2.computeFirstFireTime(null);
         trigger3.computeFirstFireTime(null);
@@ -171,72 +168,58 @@ public abstract class AbstractJobStoreTest extends TestCase {
         long firstFireTime = new Date(trigger1.getNextFireTime().getTime()).getTime();
 
         List<OperableTrigger> acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 10000, 4, 1000L);
-        assertEquals(4, acquiredTriggers.size());
+        assertEquals(1, acquiredTriggers.size());
+        assertEquals(early.getKey(), acquiredTriggers.get(0).getKey());
+        this.fJobStore.releaseAcquiredTrigger(early);
+
+        acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 10000, 4, 205000);
+        assertEquals(2, acquiredTriggers.size());
         assertEquals(early.getKey(), acquiredTriggers.get(0).getKey());
         assertEquals(trigger1.getKey(), acquiredTriggers.get(1).getKey());
-        assertEquals(trigger2.getKey(), acquiredTriggers.get(2).getKey());
-        assertEquals(trigger3.getKey(), acquiredTriggers.get(3).getKey());
         this.fJobStore.releaseAcquiredTrigger(early);
         this.fJobStore.releaseAcquiredTrigger(trigger1);
-        this.fJobStore.releaseAcquiredTrigger(trigger2);
-        this.fJobStore.releaseAcquiredTrigger(trigger3);
-
-        acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 10000, 5, 1000L);
-        assertEquals(5, acquiredTriggers.size());
-        assertEquals(early.getKey(), acquiredTriggers.get(0).getKey());
-        assertEquals(trigger1.getKey(), acquiredTriggers.get(1).getKey());
-        assertEquals(trigger2.getKey(), acquiredTriggers.get(2).getKey());
-        assertEquals(trigger3.getKey(), acquiredTriggers.get(3).getKey());
-        assertEquals(trigger4.getKey(), acquiredTriggers.get(4).getKey());
-        this.fJobStore.releaseAcquiredTrigger(early);
+        
+        this.fJobStore.removeTrigger(early.getKey());
+        
+        acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 10000, 5, 100000L);
+        assertEquals(4, acquiredTriggers.size());
+        assertEquals(trigger1.getKey(), acquiredTriggers.get(0).getKey());
+        assertEquals(trigger2.getKey(), acquiredTriggers.get(1).getKey());
+        assertEquals(trigger3.getKey(), acquiredTriggers.get(2).getKey());
+        assertEquals(trigger4.getKey(), acquiredTriggers.get(3).getKey());
         this.fJobStore.releaseAcquiredTrigger(trigger1);
         this.fJobStore.releaseAcquiredTrigger(trigger2);
         this.fJobStore.releaseAcquiredTrigger(trigger3);
         this.fJobStore.releaseAcquiredTrigger(trigger4);
 
-        acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 10000, 6, 1000L);
-        assertEquals(5, acquiredTriggers.size());
-        assertEquals(early.getKey(), acquiredTriggers.get(0).getKey());
-        assertEquals(trigger1.getKey(), acquiredTriggers.get(1).getKey());
-        assertEquals(trigger2.getKey(), acquiredTriggers.get(2).getKey());
-        assertEquals(trigger3.getKey(), acquiredTriggers.get(3).getKey());
-        assertEquals(trigger4.getKey(), acquiredTriggers.get(4).getKey());
-        this.fJobStore.releaseAcquiredTrigger(early);
+        acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 10000, 6, 100000L);
+        assertEquals(4, acquiredTriggers.size());
+        assertEquals(trigger1.getKey(), acquiredTriggers.get(0).getKey());
+        assertEquals(trigger2.getKey(), acquiredTriggers.get(1).getKey());
+        assertEquals(trigger3.getKey(), acquiredTriggers.get(2).getKey());
+        assertEquals(trigger4.getKey(), acquiredTriggers.get(3).getKey());
         this.fJobStore.releaseAcquiredTrigger(trigger1);
         this.fJobStore.releaseAcquiredTrigger(trigger2);
         this.fJobStore.releaseAcquiredTrigger(trigger3);
         this.fJobStore.releaseAcquiredTrigger(trigger4);
 
         acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 1, 5, 0L);
-        assertEquals(2, acquiredTriggers.size());
-        assertEquals(early.getKey(), acquiredTriggers.get(0).getKey());
-        assertEquals(trigger1.getKey(), acquiredTriggers.get(1).getKey());
-        this.fJobStore.releaseAcquiredTrigger(early);
+        assertEquals(1, acquiredTriggers.size());
+        assertEquals(trigger1.getKey(), acquiredTriggers.get(0).getKey());
         this.fJobStore.releaseAcquiredTrigger(trigger1);
 
-        acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 250, 5, 199L);
-        assertEquals(5, acquiredTriggers.size());
-        assertEquals(early.getKey(), acquiredTriggers.get(0).getKey());
-        assertEquals(trigger1.getKey(), acquiredTriggers.get(1).getKey());
-        assertEquals(trigger2.getKey(), acquiredTriggers.get(2).getKey());
-        assertEquals(trigger3.getKey(), acquiredTriggers.get(3).getKey());
-        assertEquals(trigger4.getKey(), acquiredTriggers.get(4).getKey());
-        this.fJobStore.releaseAcquiredTrigger(early);
+        acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 250, 5, 19999L);
+        assertEquals(2, acquiredTriggers.size());
+        assertEquals(trigger1.getKey(), acquiredTriggers.get(0).getKey());
+        assertEquals(trigger2.getKey(), acquiredTriggers.get(1).getKey());
         this.fJobStore.releaseAcquiredTrigger(trigger1);
         this.fJobStore.releaseAcquiredTrigger(trigger2);
         this.fJobStore.releaseAcquiredTrigger(trigger3);
-        this.fJobStore.releaseAcquiredTrigger(trigger4);
         
-        acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 150, 5, 50L);
-        assertEquals(4, acquiredTriggers.size());
-        assertEquals(early.getKey(), acquiredTriggers.get(0).getKey());
-        assertEquals(trigger1.getKey(), acquiredTriggers.get(1).getKey());
-        assertEquals(trigger2.getKey(), acquiredTriggers.get(2).getKey());
-        assertEquals(trigger3.getKey(), acquiredTriggers.get(3).getKey());
-        this.fJobStore.releaseAcquiredTrigger(early);
+        acquiredTriggers = this.fJobStore.acquireNextTriggers(firstFireTime + 150, 5, 5000L);
+        assertEquals(1, acquiredTriggers.size());
+        assertEquals(trigger1.getKey(), acquiredTriggers.get(0).getKey());
         this.fJobStore.releaseAcquiredTrigger(trigger1);
-        this.fJobStore.releaseAcquiredTrigger(trigger2);
-        this.fJobStore.releaseAcquiredTrigger(trigger3);
     }
 
     @SuppressWarnings("deprecation")
