@@ -224,7 +224,8 @@ public class ShutdownClient extends AbstractClientBase {
                                                new ThreadIgnore("(Attach Listener)"),
                                                new ThreadIgnore("JFR request timer"),
                                                new ThreadIgnore("JMAPI event thread"),
-                                               new ThreadIgnore("AWT-AppKit"));
+                                               new ThreadIgnore("AWT-AppKit"),
+                                               new ThreadIgnore("Keep-Alive-SocketCleaner"));
 
     for (Iterator<ThreadInfo> it = dump.iterator(); it.hasNext();) {
       ThreadInfo threadInfo = it.next();
