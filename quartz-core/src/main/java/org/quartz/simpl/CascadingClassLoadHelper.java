@@ -22,6 +22,7 @@ import java.util.LinkedList;
 import java.net.URL;
 import java.io.InputStream;
 
+import org.quartz.osgi.BundleClassLoaderHelper;
 import org.quartz.spi.ClassLoadHelper;
 
 /**
@@ -83,6 +84,7 @@ public class CascadingClassLoadHelper implements ClassLoadHelper {
         loadHelpers.add(new SimpleClassLoadHelper());
         loadHelpers.add(new ThreadContextClassLoadHelper());
         loadHelpers.add(new InitThreadContextClassLoadHelper());
+        loadHelpers.add(new BundleClassLoaderHelper());
         
         for(ClassLoadHelper loadHelper: loadHelpers) {
             loadHelper.initialize();
