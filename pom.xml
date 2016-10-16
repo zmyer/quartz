@@ -65,7 +65,6 @@
     <skipDeploy>false</skipDeploy>
     <skipJavadoc>false</skipJavadoc>
     <skipCheckstyle>false</skipCheckstyle>
-    <additionalparam>-Xdoclint:none</additionalparam>
     
     <slf4j.version>1.7.7</slf4j.version>
     <c3p0.version>0.9.1.1</c3p0.version>
@@ -349,7 +348,16 @@
       <modules>
         <module>system-tests</module>
       </modules>
-    </profile>    
+    </profile>
+    <profile>
+      <id>doclint-java8-disable</id>
+      <activation>
+        <jdk>[1.8,)</jdk>
+      </activation>
+      <properties>
+        <additionalparam>-Xdoclint:none</additionalparam>
+      </properties>
+    </profile>
   </profiles>  
 
   <distributionManagement>
