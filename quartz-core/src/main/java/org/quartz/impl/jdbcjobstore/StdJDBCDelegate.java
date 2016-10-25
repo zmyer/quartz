@@ -1158,9 +1158,9 @@ public class StdJDBCDelegate implements DriverDelegate, StdJDBCConstants {
             JobDetail jobDetail) throws SQLException, IOException {
 
         // save some clock cycles by unnecessarily writing job data blob ...
-        boolean updateJobData = trigger.getJobDataMap().isDirty();
+        boolean updateJobData = trigger.getJobDataMap().isDirty() && (trigger.getJobDataMap().size() > 0);
         ByteArrayOutputStream baos = null;
-        if(updateJobData && trigger.getJobDataMap().size() > 0) {
+        if(updateJobData) {
             baos = serializeJobData(trigger.getJobDataMap());
         }
                 
