@@ -62,6 +62,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.6</maven.compiler.source>
+    <maven.compiler.target>1.6</maven.compiler.target>
+
     <skipDeploy>false</skipDeploy>
     <skipJavadoc>false</skipJavadoc>
     <skipCheckstyle>false</skipCheckstyle>
@@ -185,9 +188,7 @@
           <configuration>
             <fork>true</fork>
             <meminitial>128</meminitial>
-            <maxmem>512</maxmem>            
-            <source>1.6</source>
-            <target>1.6</target>
+            <maxmem>512</maxmem>
           </configuration>
         </plugin>      
         <plugin>
