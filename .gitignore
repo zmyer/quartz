@@ -1,6 +1,7 @@
 # Maven and test related noise
 target/
 derby.log
+logs/
 
 # IntelliJ IDEA noise
 out/
