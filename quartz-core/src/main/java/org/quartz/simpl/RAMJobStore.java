@@ -1225,8 +1225,26 @@ public class RAMJobStore implements JobStore {
                 }
                 resumeTrigger(triggerKey);
             }
-            for (String group : groups) {
-                pausedTriggerGroups.remove(group);
+
+            // Find all matching paused trigger groups, and then remove them.
+            StringMatcher.StringOperatorName operator = matcher.getCompareWithOperator();
+            LinkedList<String> pausedGroups = new LinkedList<String>();
+            String matcherGroup = matcher.getCompareToValue();
+            switch (operator) {
+                case EQUALS:
+                    if(pausedTriggerGroups.contains(matcherGroup)) {
+                        pausedGroups.add(matcher.getCompareToValue());
+                    }
+                    break;
+                default :
+                    for (String group : pausedTriggerGroups) {
+                        if(operator.evaluate(group, matcherGroup)) {
+                            pausedGroups.add(group);
+                        }
+                    }
+            }
+            for (String pausedGroup : pausedGroups) {
+                pausedTriggerGroups.remove(pausedGroup);
             }
         }
 
