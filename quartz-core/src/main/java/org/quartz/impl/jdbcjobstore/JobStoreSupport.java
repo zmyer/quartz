@@ -1035,7 +1035,7 @@ public abstract class JobStoreSupport implements JobStore, Constants {
             schedSignaler.notifySchedulerListenersFinalized(trig);
         } else {
             storeTrigger(conn, trig, null, true, newStateIfNotComplete,
-                    forceState, false);
+                    forceState, recovering);
         }
     }
 
