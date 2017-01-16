@@ -17,12 +17,7 @@ package org.quartz.core;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.quartz.JobBuilder;
-import org.quartz.JobExecutionContext;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.SimpleScheduleBuilder;
-import org.quartz.TriggerBuilder;
+import org.quartz.*;
 import org.quartz.impl.DirectSchedulerFactory;
 import org.quartz.impl.jdbcjobstore.JdbcQuartzTestUtilities;
 import org.quartz.impl.jdbcjobstore.JobStoreTX;
@@ -30,7 +25,10 @@ import org.quartz.impl.jdbcjobstore.JobStoreTX;
 import org.quartz.listeners.JobListenerSupport;
 import org.quartz.simpl.SimpleThreadPool;
 import org.quartz.utils.DBConnectionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -81,8 +79,9 @@ public class RecoverJobsTest {
             // emulate fail over situation
             scheduler.shutdown(false);
 
-            Statement st = DBConnectionManager.getInstance().getConnection(dsName).createStatement();
+            Connection conn = DBConnectionManager.getInstance().getConnection(dsName);
             try {
+                Statement st = conn.createStatement();
                 ResultSet rs1 = st.executeQuery("SELECT TRIGGER_STATE from QRTZ_TRIGGERS");
                 rs1.next();
                 // check that trigger is blocked after fail over situation
@@ -92,8 +91,9 @@ public class RecoverJobsTest {
                 rs2.next();
                 // check that fired trigger remains after fail over situation
                 Assert.assertEquals(1, rs2.getLong(1));
-            } finally {
                 st.close();
+            } finally {
+                conn.close();
             }
 
             // stop job executing to not as part of emulation fail over situation
@@ -130,4 +130,28 @@ public class RecoverJobsTest {
         }
     }
 
+    /**
+     * @author https://github.com/eugene-goroschenya
+     */
+    @DisallowConcurrentExecution
+    public static class RecoverJobsTestJob implements Job {
+        private static Logger _log = LoggerFactory.getLogger(RecoverJobsTestJob.class);
+        static boolean runForever = true;
+
+        @Override
+        public void execute(JobExecutionContext context) throws JobExecutionException {
+            long now = System.currentTimeMillis();
+            int tic = 0;
+            _log.info("Started - " + now);
+            try {
+                while (runForever) {
+                    Thread.sleep(1000);
+                    _log.info("Tic " + (++tic) + "- " + now);
+                }
+                _log.info("Stopped - " + now);
+            } catch (InterruptedException e) {
+                _log.info("Interrupted - " + now);
+            }
+        }
+    }
 }
