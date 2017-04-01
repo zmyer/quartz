@@ -1,3 +1,18 @@
+/*
+ * Copyright 2001-2009 Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy
+ * of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 package org.quartz.plugins.interrupt;
 
 import java.util.concurrent.Executors;
@@ -76,7 +91,7 @@ public class JobInterruptMonitorPlugin extends TriggerListenerSupport implements
 
     // Trigger Listener Methods
     public String getName() {
-        return null;
+        return "JobInterruptMonitorListner";
     }
 
     public void triggerFired(Trigger trigger, JobExecutionContext context) {
@@ -87,9 +102,10 @@ public class JobInterruptMonitorPlugin extends TriggerListenerSupport implements
                 JobInterruptMonitorPlugin monitorPlugin = (JobInterruptMonitorPlugin) context.getScheduler()
                         .getContext().get(JOB_INTERRUPT_MONITER_KEY);
                 // Get the MaxRuntime from Job Data if NOT available use DEFAULT_MAX_RUNTIME from Plugin Configuration
-                long jobDataDelay = context.getJobDetail().getJobDataMap().getLong(PluginConstants.MAX_RUN_TIME);
-                if (jobDataDelay == 0) {
-                    jobDataDelay = DEFAULT_MAX_RUNTIME;
+                long jobDataDelay  = DEFAULT_MAX_RUNTIME;
+
+                if (context.getJobDetail().getJobDataMap().get(PluginConstants.MAX_RUN_TIME) != null){
+                     jobDataDelay = context.getJobDetail().getJobDataMap().getLong(PluginConstants.MAX_RUN_TIME);
                 }
                 future = monitorPlugin.scheduleJobInterruptMonitor(context.getJobDetail().getKey(), jobDataDelay);
                 getLog().debug("Job's Interrupt Monitor has been scheduled to interrupt with the delay :"
