@@ -27,8 +27,6 @@ import org.quartz.JobPersistenceException;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.Trigger.CompletedExecutionInstruction;
-import org.quartz.impl.jdbcjobstore.JobStoreSupport;
-import org.quartz.spi.JobStore;
 import org.quartz.spi.OperableTrigger;
 import org.quartz.spi.TriggerFiredBundle;
 import org.quartz.spi.TriggerFiredResult;
@@ -269,7 +267,7 @@ public class QuartzSchedulerThread extends Thread {
                 // wait a bit, if reading from job store is consistently
                 // failing (e.g. DB is down or restarting)..
                 if (acquiresFailed > 1) {
-                    long delay = computeDelayForRepeatedErrors(qsRsrcs.getJobStore(), acquiresFailed);
+                    long delay = computeDelayForRepeatedErrors(acquiresFailed);
                     try {
                         Thread.sleep(delay);
                     } catch (InterruptedException ignore) {
@@ -440,19 +438,13 @@ public class QuartzSchedulerThread extends Thread {
         qsRsrcs = null;
     }
 
-    private static long computeDelayForRepeatedErrors(JobStore jobStore, long acquiresFailed) {
-        long interval;
+    private static long computeDelayForRepeatedErrors(long acquiresFailed) {
+        assert acquiresFailed > 0;
 
-        if (jobStore instanceof JobStoreSupport) {
-            interval = ((JobStoreSupport)jobStore).getDbRetryInterval();
-        } else {
-            interval = 250 * acquiresFailed;
-        }
+        long interval = 250 * acquiresFailed;
 
         if (interval > 5000)
             interval = 5000;
-        if (interval < 50)
-            interval = 50;
 
         return interval;
     }
