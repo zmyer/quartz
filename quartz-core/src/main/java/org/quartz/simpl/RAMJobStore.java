@@ -1650,6 +1650,11 @@ public class RAMJobStore implements JobStore {
         }
     }
 
+    @Override
+    public long getAcquireRetryDelay(int failureCount) {
+        return 20;
+    }
+
     protected void setAllTriggersOfJobToState(JobKey jobKey, int state) {
         ArrayList<TriggerWrapper> tws = getTriggerWrappersForJob(jobKey);
         for (TriggerWrapper tw : tws) {

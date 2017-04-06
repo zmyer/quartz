@@ -379,6 +379,11 @@ public class PlainTerracottaJobStore<T extends ClusteredJobStore> implements Ter
   }
 
   @Override
+  public long getAcquireRetryDelay(int failureCount) {
+    return tcRetryInterval;
+  }
+
+  @Override
   public String getUUID() {
     return toolkit.getClientUUID();
   }

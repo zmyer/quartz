@@ -27,6 +27,7 @@ import org.quartz.JobPersistenceException;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.Trigger.CompletedExecutionInstruction;
+import org.quartz.spi.JobStore;
 import org.quartz.spi.OperableTrigger;
 import org.quartz.spi.TriggerFiredBundle;
 import org.quartz.spi.TriggerFiredResult;
@@ -241,7 +242,7 @@ public class QuartzSchedulerThread extends Thread {
      */
     @Override
     public void run() {
-        long acquiresFailed = 0;
+        int acquiresFailed = 0;
 
         while (!halted.get()) {
             try {
@@ -267,10 +268,10 @@ public class QuartzSchedulerThread extends Thread {
                 // wait a bit, if reading from job store is consistently
                 // failing (e.g. DB is down or restarting)..
                 if (acquiresFailed > 1) {
-                    long delay = computeDelayForRepeatedErrors(acquiresFailed);
                     try {
+                        long delay = computeDelayForRepeatedErrors(qsRsrcs.getJobStore(), acquiresFailed);
                         Thread.sleep(delay);
-                    } catch (InterruptedException ignore) {
+                    } catch (Exception ignore) {
                     }
                 }
 
@@ -294,14 +295,16 @@ public class QuartzSchedulerThread extends Thread {
                                 "An error occurred while scanning for the next triggers to fire.",
                                 jpe);
                         }
-                        acquiresFailed++;
+                        if (acquiresFailed < Integer.MAX_VALUE)
+                            acquiresFailed++;
                         continue;
                     } catch (RuntimeException e) {
                         if (acquiresFailed == 0) {
                             getLog().error("quartzSchedulerThreadLoop: RuntimeException "
                                     +e.getMessage(), e);
                         }
-                        acquiresFailed++;
+                        if (acquiresFailed < Integer.MAX_VALUE)
+                            acquiresFailed++;
                         continue;
                     }
 
@@ -438,15 +441,27 @@ public class QuartzSchedulerThread extends Thread {
         qsRsrcs = null;
     }
 
-    private static long computeDelayForRepeatedErrors(long acquiresFailed) {
-        assert acquiresFailed > 0;
+    private static final long MIN_DELAY = 20;
+    private static final long MAX_DELAY = 600000;
 
-        long interval = 250 * acquiresFailed;
+    private static long computeDelayForRepeatedErrors(JobStore jobStore, int acquiresFailed) {
+        long delay;
+        try {
+            delay = jobStore.getAcquireRetryDelay(acquiresFailed);
+        } catch (Exception ignored) {
+            // we're trying to be useful in case of error states, not cause
+            // additional errors..
+            delay = 100;
+        }
 
-        if (interval > 5000)
-            interval = 5000;
 
-        return interval;
+        // sanity check per getAcquireRetryDelay specification
+        if (delay < MIN_DELAY)
+            delay = MIN_DELAY;
+        if (delay > MAX_DELAY)
+            delay = MAX_DELAY;
+
+        return delay;
     }
 
     private boolean releaseIfScheduleChangedSignificantly(
