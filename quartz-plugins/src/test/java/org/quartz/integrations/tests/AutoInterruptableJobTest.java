@@ -30,7 +30,7 @@ import junit.framework.TestCase;
 import org.quartz.*;
 
 import org.quartz.impl.StdSchedulerFactory;
-import org.quartz.plugins.interrupt.PluginConstants;
+import org.quartz.plugins.interrupt.JobInterruptMonitorPlugin;
 
 /**
  * AutoInterruptable Job Monitor test
@@ -100,7 +100,7 @@ public class AutoInterruptableJobTest extends TestCase {
         // add a job with a trigger that will fire immediately
         
         JobDataMap jobDataMap = new JobDataMap();
-        jobDataMap.put(PluginConstants.AUTO_INTERRUPTIBLE, "true");
+        jobDataMap.put(JobInterruptMonitorPlugin.AUTO_INTERRUPTIBLE, "true");
         JobDetail job = newJob()
             .ofType(TestInterruptableJob.class)
             .withIdentity("j1")
