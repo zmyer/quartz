@@ -2006,6 +2006,11 @@ class DefaultClusteredJobStore implements ClusteredJobStore {
     throw new AssertionError();
   }
 
+  @Override
+  public long getAcquireRetryDelay(int failureCount) {
+    return retryInterval;
+  }
+
   void injectTriggerWrapper(final TriggerWrapper triggerWrapper) {
     timeTriggers.add(triggerWrapper);
   }

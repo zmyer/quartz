@@ -616,7 +616,12 @@ public abstract class JobStoreSupport implements JobStore, Constants {
             boolean doubleCheckLockMisfireHandler) {
         this.doubleCheckLockMisfireHandler = doubleCheckLockMisfireHandler;
     }
-    
+
+    @Override
+    public long getAcquireRetryDelay(int failureCount) {
+        return dbRetryInterval;
+    }
+
     //---------------------------------------------------------------------------
     // interface methods
     //---------------------------------------------------------------------------
