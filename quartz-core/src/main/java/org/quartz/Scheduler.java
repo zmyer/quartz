@@ -826,6 +826,22 @@ public interface Scheduler {
         throws SchedulerException;
 
     /**
+     * Reset the current state of the identified <code>{@link Trigger}</code>
+     * from {@link TriggerState#ERROR} to {@link TriggerState#NORMAL} or
+     * {@link TriggerState#PAUSED} as appropriate.
+     *
+     * <p>Only affects triggers that are in ERROR state - if identified trigger is not
+     * in that state then the result is a no-op.</p>
+     *
+     * <p>The result will be the trigger returning to the normal, waiting to
+     * be fired state, unless the trigger's group has been paused, in which
+     * case it will go into the PAUSED state.</p>
+     *
+     * @see Trigger.TriggerState
+     */
+    void resetTriggerFromErrorState(TriggerKey triggerKey)
+        throws SchedulerException;
+    /**
      * Add (register) the given <code>Calendar</code> to the Scheduler.
      * 
      * @param updateTriggers whether or not to update existing triggers that

@@ -1556,6 +1556,13 @@ J     *
         return resources.getJobStore().getTriggerState(triggerKey);
     }
 
+
+    public void resetTriggerFromErrorState(TriggerKey triggerKey) throws SchedulerException  {
+        validateState();
+
+        resources.getJobStore().resetTriggerFromErrorState(triggerKey);
+    }
+
     /**
      * <p>
      * Add (register) the given <code>Calendar</code> to the Scheduler.
