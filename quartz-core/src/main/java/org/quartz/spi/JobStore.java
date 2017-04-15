@@ -425,6 +425,21 @@ public interface JobStore {
      */
     TriggerState getTriggerState(TriggerKey triggerKey) throws JobPersistenceException;
 
+    /**
+     * Reset the current state of the identified <code>{@link Trigger}</code>
+     * from {@link TriggerState#ERROR} to {@link TriggerState#NORMAL} or
+     * {@link TriggerState#PAUSED} as appropriate.
+     *
+     * <p>Only affects triggers that are in ERROR state - if identified trigger is not
+     * in that state then the result is a no-op.</p>
+     *
+     * <p>The result will be the trigger returning to the normal, waiting to
+     * be fired state, unless the trigger's group has been paused, in which
+     * case it will go into the PAUSED state.</p>
+     */
+    void resetTriggerFromErrorState(TriggerKey triggerKey) throws JobPersistenceException;
+
+
     /////////////////////////////////////////////////////////////////////////////
     //
     // Trigger State manipulation methods
@@ -449,7 +464,7 @@ public interface JobStore {
      * paused.
      * </p>
      *
-     * @see #resumeTriggerGroup(String)
+     * @see #resumeTriggers(GroupMatcher)
      */
     Collection<String> pauseTriggers(GroupMatcher<TriggerKey> matcher) throws JobPersistenceException;
 
@@ -471,7 +486,7 @@ public interface JobStore {
      * paused.
      * </p>
      *
-     * @see #resumeJobGroup(String)
+     * @see #resumeJobs(GroupMatcher)
      */
     Collection<String> pauseJobs(GroupMatcher<JobKey> groupMatcher)
         throws JobPersistenceException;
@@ -498,7 +513,7 @@ public interface JobStore {
      * <code>Trigger</code>'s misfire instruction will be applied.
      * </p>
      *
-     * @see #pauseTriggers(String)
+     * @see #pauseTriggers(GroupMatcher)
      */
     Collection<String> resumeTriggers(GroupMatcher<TriggerKey> matcher)
         throws JobPersistenceException;
@@ -530,7 +545,7 @@ public interface JobStore {
      * misfire instruction will be applied.
      * </p>
      *
-     * @see #pauseJobGroup(String)
+     * @see #pauseJobs(GroupMatcher)
      */
     Collection<String> resumeJobs(GroupMatcher<JobKey> matcher)
         throws JobPersistenceException;
@@ -545,7 +560,7 @@ public interface JobStore {
      * </p>
      *
      * @see #resumeAll()
-     * @see #pauseTriggers(String)
+     * @see #pauseTriggers(GroupMatcher)
      */
     void pauseAll() throws JobPersistenceException;
 
@@ -576,7 +591,7 @@ public interface JobStore {
      * @param noLaterThan If > 0, the JobStore should only return a Trigger
      * that will fire no later than the time represented in this value as
      * milliseconds.
-     * @see #releaseAcquiredTrigger(Trigger)
+     * @see #releaseAcquiredTrigger(OperableTrigger)
      */
     List<OperableTrigger> acquireNextTriggers(long noLaterThan, int maxCount, long timeWindow)
         throws JobPersistenceException;

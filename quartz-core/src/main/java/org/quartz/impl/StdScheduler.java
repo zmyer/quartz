@@ -519,6 +519,25 @@ public class StdScheduler implements Scheduler {
     }
 
     /**
+     * Reset the current state of the identified <code>{@link Trigger}</code>
+     * from {@link TriggerState#ERROR} to {@link TriggerState#NORMAL} or
+     * {@link TriggerState#PAUSED} as appropriate.
+     *
+     * <p>Only affects triggers that are in ERROR state - if identified trigger is not
+     * in that state then the result is a no-op.</p>
+     *
+     * <p>The result will be the trigger returning to the normal, waiting to
+     * be fired state, unless the trigger's group has been paused, in which
+     * case it will go into the PAUSED state.</p>
+     *
+     * @see Trigger.TriggerState
+     */
+    public void resetTriggerFromErrorState(TriggerKey triggerKey)
+            throws SchedulerException {
+        sched.resetTriggerFromErrorState(triggerKey);
+    }
+
+    /**
      * <p>
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>.
      * </p>

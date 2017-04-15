@@ -833,6 +833,22 @@ public abstract class RemoteMBeanScheduler implements Scheduler {
                 new String[] { String.class.getName(), String.class.getName() }));
     }
 
+
+    /**
+     * <p>
+     * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>,
+     * passing the <code>SchedulingContext</code> associated with this
+     * instance.
+     * </p>
+     */
+    public void resetTriggerFromErrorState(TriggerKey triggerKey)
+            throws SchedulerException {
+        invoke(
+            "resetTriggerFromErrorState",
+            new Object[] { triggerKey.getName(), triggerKey.getGroup() },
+            new String[] { String.class.getName(), String.class.getName() });
+    }
+
     /**
      * <p>
      * Calls the equivalent method on the 'proxied' <code>QuartzScheduler</code>,
