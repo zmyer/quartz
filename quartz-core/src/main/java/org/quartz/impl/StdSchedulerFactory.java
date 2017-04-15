@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2009 Terracotta, Inc.
+ * Copyright Terracotta, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -17,7 +17,12 @@
 
 package org.quartz.impl;
 
-import org.quartz.*;
+import org.quartz.JobListener;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerConfigException;
+import org.quartz.SchedulerException;
+import org.quartz.SchedulerFactory;
+import org.quartz.TriggerListener;
 import org.quartz.core.JobRunShellFactory;
 import org.quartz.core.QuartzScheduler;
 import org.quartz.core.QuartzSchedulerResources;
@@ -31,8 +36,18 @@ import org.quartz.impl.matchers.EverythingMatcher;
 import org.quartz.management.ManagementRESTServiceConfiguration;
 import org.quartz.simpl.RAMJobStore;
 import org.quartz.simpl.SimpleThreadPool;
-import org.quartz.spi.*;
-import org.quartz.utils.*;
+import org.quartz.spi.ClassLoadHelper;
+import org.quartz.spi.InstanceIdGenerator;
+import org.quartz.spi.JobFactory;
+import org.quartz.spi.JobStore;
+import org.quartz.spi.SchedulerPlugin;
+import org.quartz.spi.ThreadExecutor;
+import org.quartz.spi.ThreadPool;
+import org.quartz.utils.ConnectionProvider;
+import org.quartz.utils.DBConnectionManager;
+import org.quartz.utils.JNDIConnectionProvider;
+import org.quartz.utils.PoolingConnectionProvider;
+import org.quartz.utils.PropertiesParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +55,12 @@ import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.security.AccessControlException;
 import java.sql.SQLException;
@@ -977,6 +997,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
                     dbMgr = DBConnectionManager.getInstance();
                     dbMgr.addConnectionProvider(dsNames[i], cp);
                 } else {
+                    String poolingProvider = pp.getStringProperty(PoolingConnectionProvider.POOLING_PROVIDER);
                     String dsDriver = pp.getStringProperty(PoolingConnectionProvider.DB_DRIVER);
                     String dsURL = pp.getStringProperty(PoolingConnectionProvider.DB_URL);
 
@@ -992,13 +1013,31 @@ public class StdSchedulerFactory implements SchedulerFactory {
                                         + dsNames[i]);
                         throw initException;
                     }
+                    // we load even these "core" providers by class name in order to avoid a static dependency on
+                    // the c3p0 and hikaricp libraries
+                    if(poolingProvider != null && poolingProvider.equals(PoolingConnectionProvider.POOLING_PROVIDER_HIKARICP)) {
+                        cpClass = "org.quartz.utils.HikariCpPoolingConnectionProvider";
+                    }
+                    else {
+                        cpClass = "org.quartz.utils.C3p0PoolingConnectionProvider";
+                    }
+                    log.info("Using ConnectionProvider class '" + cpClass + "' for data source '" + dsNames[i] + "'");
+
                     try {
-                        PoolingConnectionProvider cp = new PoolingConnectionProvider(pp.getUnderlyingProperties());
+                        ConnectionProvider cp = null;
+                        try {
+                            Constructor constructor = loadHelper.loadClass(cpClass).getConstructor(Properties.class);
+                            cp = (ConnectionProvider) constructor.newInstance(pp.getUnderlyingProperties());
+                        } catch (Exception e) {
+                            initException = new SchedulerException("ConnectionProvider class '" + cpClass
+                                    + "' could not be instantiated.", e);
+                            throw initException;
+                        }
                         dbMgr = DBConnectionManager.getInstance();
                         dbMgr.addConnectionProvider(dsNames[i], cp);
 
-                        // Populate the underlying C3P0 data source pool properties
-                        populateProviderWithExtraProps(cp, pp.getUnderlyingProperties());
+                        // Populate the underlying C3P0/HikariCP data source pool properties
+                        populateProviderWithExtraProps((PoolingConnectionProvider)cp, pp.getUnderlyingProperties());
                     } catch (Exception sqle) {
                         initException = new SchedulerException(
                                 "Could not initialize DataSource: " + dsNames[i],
@@ -1360,12 +1399,9 @@ public class StdSchedulerFactory implements SchedulerFactory {
         copyProps.remove(PoolingConnectionProvider.DB_URL);
         copyProps.remove(PoolingConnectionProvider.DB_USER);
         copyProps.remove(PoolingConnectionProvider.DB_PASSWORD);
-        copyProps.remove(PoolingConnectionProvider.DB_IDLE_VALIDATION_SECONDS);
         copyProps.remove(PoolingConnectionProvider.DB_MAX_CONNECTIONS);
-        copyProps.remove(PoolingConnectionProvider.DB_MAX_CACHED_STATEMENTS_PER_CONNECTION);
-        copyProps.remove(PoolingConnectionProvider.DB_VALIDATE_ON_CHECKOUT);
         copyProps.remove(PoolingConnectionProvider.DB_VALIDATION_QUERY);
-        copyProps.remove(PoolingConnectionProvider.DB_DISCARD_IDLE_CONNECTIONS_SECONDS);
+        props.remove(PoolingConnectionProvider.POOLING_PROVIDER);
         setBeanProps(cp.getDataSource(), copyProps);
     }
 
@@ -1392,6 +1428,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
             java.lang.reflect.InvocationTargetException,
             IntrospectionException, SchedulerConfigException {
         props.remove("class");
+        props.remove(PoolingConnectionProvider.POOLING_PROVIDER);
 
         BeanInfo bi = Introspector.getBeanInfo(obj.getClass());
         PropertyDescriptor[] propDescs = bi.getPropertyDescriptors();
