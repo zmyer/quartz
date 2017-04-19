@@ -230,11 +230,8 @@
             org.jboss.naming;resolution:=optional,
             org.jboss.system;resolution:=optional,
             commonj.work;resolution:=optional,
-            org.quartz.jobs;resolution:=optional
-            org.osgi.framework;resolution:=optional,*</Import-Package>
+            org.quartz.jobs;resolution:=optional,*</Import-Package>
             <Export-Package>org.quartz.*</Export-Package>
-            <Private-Package>org.terracotta.quartz.*,org.quartz.osgi.activator</Private-Package>
-            <Bundle-Activator>org.quartz.osgi.activator.Activator</Bundle-Activator>
             <Private-Package>org.terracotta.quartz.*</Private-Package>
             <Bundle-RequiredExecutionEnvironment>JavaSE-1.6</Bundle-RequiredExecutionEnvironment>
           </instructions>
