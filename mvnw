@@ -54,6 +54,7 @@ case "`uname`" in
   CYGWIN*) cygwin=true ;;
   MINGW*) mingw=true;;
   Darwin*) darwin=true
+<<<<<<< HEAD
            #
            # Look for the Apple JDKs first to preserve the existing behaviour, and then look
            # for the new JDKs provided by Oracle.
@@ -86,6 +87,18 @@ case "`uname`" in
              export JAVA_HOME=`/usr/libexec/java_home`
            fi
            ;;
+=======
+    # Use /usr/libexec/java_home if available, otherwise fall back to /Library/Java/Home
+    # See https://developer.apple.com/library/mac/qa/qa1170/_index.html
+    if [ -z "$JAVA_HOME" ]; then
+      if [ -x "/usr/libexec/java_home" ]; then
+        export JAVA_HOME="`/usr/libexec/java_home`"
+      else
+        export JAVA_HOME="/Library/Java/Home"
+      fi
+    fi
+    ;;
+>>>>>>> q2x/quartz-2.2.x
 esac
 
 if [ -z "$JAVA_HOME" ] ; then
@@ -187,14 +200,34 @@ CLASSWORLDS_LAUNCHER=org.codehaus.plexus.classworlds.launcher.Launcher
 # traverses directory structure from process work directory to filesystem root
 # first directory with .mvn subdirectory is considered project base directory
 find_maven_basedir() {
+<<<<<<< HEAD
   local basedir=$(pwd)
   local wdir=$(pwd)
+=======
+
+  if [ -z "$1" ]
+  then
+    echo "Path not specified to find_maven_basedir"
+    return 1
+  fi
+
+  basedir="$1"
+  wdir="$1"
+>>>>>>> q2x/quartz-2.2.x
   while [ "$wdir" != '/' ] ; do
     if [ -d "$wdir"/.mvn ] ; then
       basedir=$wdir
       break
     fi
+<<<<<<< HEAD
     wdir=$(cd "$wdir/.."; pwd)
+=======
+    # workaround for JBEAP-8937 (on Solaris 10/Sparc)
+    if [ -d "${wdir}" ]; then
+      wdir=`cd "$wdir/.."; pwd`
+    fi
+    # end of workaround
+>>>>>>> q2x/quartz-2.2.x
   done
   echo "${basedir}"
 }
@@ -206,7 +239,17 @@ concat_lines() {
   fi
 }
 
+<<<<<<< HEAD
 export MAVEN_PROJECTBASEDIR=${MAVEN_BASEDIR:-$(find_maven_basedir)}
+=======
+BASE_DIR=`find_maven_basedir "$(pwd)"`
+if [ -z "$BASE_DIR" ]; then
+  exit 1;
+fi
+
+export MAVEN_PROJECTBASEDIR=${MAVEN_BASEDIR:-"$BASE_DIR"}
+echo $MAVEN_PROJECTBASEDIR
+>>>>>>> q2x/quartz-2.2.x
 MAVEN_OPTS="$(concat_lines "$MAVEN_PROJECTBASEDIR/.mvn/jvm.config") $MAVEN_OPTS"
 
 # For Cygwin, switch paths to Windows format before running java
@@ -221,6 +264,7 @@ if $cygwin; then
     MAVEN_PROJECTBASEDIR=`cygpath --path --windows "$MAVEN_PROJECTBASEDIR"`
 fi
 
+<<<<<<< HEAD
 # Provide a "standardized" way to retrieve the CLI args that will
 # work with both Windows and non-Windows executions.
 MAVEN_CMD_LINE_ARGS="$MAVEN_CONFIG $@"
@@ -229,6 +273,10 @@ export MAVEN_CMD_LINE_ARGS
 WRAPPER_LAUNCHER=org.apache.maven.wrapper.MavenWrapperMain
 
 # avoid using MAVEN_CMD_LINE_ARGS below since that would loose parameter escaping in $@
+=======
+WRAPPER_LAUNCHER=org.apache.maven.wrapper.MavenWrapperMain
+
+>>>>>>> q2x/quartz-2.2.x
 exec "$JAVACMD" \
   $MAVEN_OPTS \
   -classpath "$MAVEN_PROJECTBASEDIR/.mvn/wrapper/maven-wrapper.jar" \
