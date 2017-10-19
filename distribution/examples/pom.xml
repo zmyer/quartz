@@ -17,6 +17,7 @@
   <properties>
     <skipDeploy>true</skipDeploy>
     <skipJavadoc>true</skipJavadoc>
+    <skipCheckstyle>true</skipCheckstyle>
     <mainClass>org.quartz.examples.example1.SimpleExample</mainClass>
   </properties>
 
