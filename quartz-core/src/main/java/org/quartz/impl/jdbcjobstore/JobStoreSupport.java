@@ -1,5 +1,5 @@
 /* 
- * Copyright 2001-2009 Terracotta, Inc. 
+ * All content copyright Terracotta, Inc., unless otherwise indicated. All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not 
  * use this file except in compliance with the License. You may obtain a copy 
@@ -616,7 +616,12 @@ public abstract class JobStoreSupport implements JobStore, Constants {
             boolean doubleCheckLockMisfireHandler) {
         this.doubleCheckLockMisfireHandler = doubleCheckLockMisfireHandler;
     }
-    
+
+    @Override
+    public long getAcquireRetryDelay(int failureCount) {
+        return dbRetryInterval;
+    }
+
     //---------------------------------------------------------------------------
     // interface methods
     //---------------------------------------------------------------------------
@@ -1035,7 +1040,7 @@ public abstract class JobStoreSupport implements JobStore, Constants {
             schedSignaler.notifySchedulerListenersFinalized(trig);
         } else {
             storeTrigger(conn, trig, null, true, newStateIfNotComplete,
-                    forceState, false);
+                    forceState, recovering);
         }
     }
 
@@ -1593,6 +1598,47 @@ public abstract class JobStoreSupport implements JobStore, Constants {
         } catch (SQLException e) {
             throw new JobPersistenceException(
                     "Couldn't determine state of trigger (" + key + "): " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Reset the current state of the identified <code>{@link Trigger}</code>
+     * from {@link TriggerState#ERROR} to {@link TriggerState#NORMAL} or
+     * {@link TriggerState#PAUSED} as appropriate.
+     *
+     * <p>Only affects triggers that are in ERROR state - if identified trigger is not
+     * in that state then the result is a no-op.</p>
+     *
+     * <p>The result will be the trigger returning to the normal, waiting to
+     * be fired state, unless the trigger's group has been paused, in which
+     * case it will go into the PAUSED state.</p>
+     */
+    public void resetTriggerFromErrorState(final TriggerKey triggerKey) throws JobPersistenceException {
+        executeInLock(
+                LOCK_TRIGGER_ACCESS,
+                new VoidTransactionCallback() {
+                    public void executeVoid(Connection conn) throws JobPersistenceException {
+                        resetTriggerFromErrorState(conn, triggerKey);
+                    }
+                });
+    }
+
+    void resetTriggerFromErrorState(Connection conn, final TriggerKey triggerKey)
+        throws JobPersistenceException {
+
+        try {
+            String newState = STATE_WAITING;
+
+            if(getDelegate().isTriggerGroupPaused(conn, triggerKey.getGroup())) {
+                newState = STATE_PAUSED;
+            }
+
+            getDelegate().updateTriggerStateFromOtherState(conn, triggerKey, newState, STATE_ERROR);
+
+            getLog().info("Trigger " + triggerKey + " reset from ERROR state to: " + newState);
+        } catch (SQLException e) {
+            throw new JobPersistenceException(
+                    "Couldn't reset from error state of trigger (" + triggerKey + "): " + e.getMessage(), e);
         }
     }
 
@@ -3696,7 +3742,7 @@ public abstract class JobStoreSupport implements JobStore, Constants {
      * the a transaction template.  If no return value is required, execute
      * should just return null.
      * 
-     * @see JobStoreSupport#executeInNonManagedTXLock(String, TransactionCallback)
+     * @see JobStoreSupport#executeInNonManagedTXLock(String, TransactionCallback, TransactionValidator)
      * @see JobStoreSupport#executeInLock(String, TransactionCallback)
      * @see JobStoreSupport#executeWithoutLock(TransactionCallback)
      */
@@ -3712,7 +3758,7 @@ public abstract class JobStoreSupport implements JobStore, Constants {
      * Implement this interface to provide the code to execute within
      * the a transaction template that has no return value.
      * 
-     * @see JobStoreSupport#executeInNonManagedTXLock(String, TransactionCallback)
+     * @see JobStoreSupport#executeInNonManagedTXLock(String, TransactionCallback, TransactionValidator)
      */
     protected abstract class VoidTransactionCallback implements TransactionCallback<Void> {
         public final Void execute(Connection conn) throws JobPersistenceException {

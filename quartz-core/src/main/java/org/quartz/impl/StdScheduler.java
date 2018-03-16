@@ -1,5 +1,5 @@
 /* 
- * Copyright 2001-2009 Terracotta, Inc. 
+ * All content copyright Terracotta, Inc., unless otherwise indicated. All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not 
  * use this file except in compliance with the License. You may obtain a copy 
@@ -516,6 +516,25 @@ public class StdScheduler implements Scheduler {
     public TriggerState getTriggerState(TriggerKey triggerKey)
         throws SchedulerException {
         return sched.getTriggerState(triggerKey);
+    }
+
+    /**
+     * Reset the current state of the identified <code>{@link Trigger}</code>
+     * from {@link TriggerState#ERROR} to {@link TriggerState#NORMAL} or
+     * {@link TriggerState#PAUSED} as appropriate.
+     *
+     * <p>Only affects triggers that are in ERROR state - if identified trigger is not
+     * in that state then the result is a no-op.</p>
+     *
+     * <p>The result will be the trigger returning to the normal, waiting to
+     * be fired state, unless the trigger's group has been paused, in which
+     * case it will go into the PAUSED state.</p>
+     *
+     * @see Trigger.TriggerState
+     */
+    public void resetTriggerFromErrorState(TriggerKey triggerKey)
+            throws SchedulerException {
+        sched.resetTriggerFromErrorState(triggerKey);
     }
 
     /**

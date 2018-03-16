@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013 Terracotta, Inc.
+ * All content copyright Terracotta, Inc., unless otherwise indicated. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -30,7 +30,7 @@ import java.util.Properties;
 /**
  * A integration test to ensure PoolConnectionProvider is working properly.
  */
-public class PoolingConnectionProviderTest extends QuartzDatabaseTestSupport {
+public class C3p0PoolingConnectionProviderTest extends QuartzDatabaseTestSupport {
     boolean testConnectionProviderClass = false;
 
     @Test
@@ -53,7 +53,7 @@ public class PoolingConnectionProviderTest extends QuartzDatabaseTestSupport {
         DBConnectionManager dbManager = DBConnectionManager.getInstance();
         ConnectionProvider provider = dbManager.getConnectionProvider("myDS");
 
-        ComboPooledDataSource ds = ((PoolingConnectionProvider)provider).getDataSource();
+        ComboPooledDataSource ds = ((C3p0PoolingConnectionProvider)provider).getDataSource();
 
         Assert.assertThat(ds.getDriverClass(), Matchers.is("org.apache.derby.jdbc.ClientDriver"));
         Assert.assertThat(ds.getJdbcUrl(), Matchers.is(JdbcQuartzDerbyUtilities.DATABASE_CONNECTION_PREFIX));
@@ -89,6 +89,8 @@ public class PoolingConnectionProviderTest extends QuartzDatabaseTestSupport {
         if (testConnectionProviderClass)
             properties.put("org.quartz.dataSource.myDS.connectionProvider.class", "org.quartz.utils.PoolingConnectionProvider");
 
+        properties.put("org.quartz.dataSource.myDS.provider", "c3p0");
+
         properties.put("org.quartz.dataSource.myDS.driver", "org.apache.derby.jdbc.ClientDriver");
         properties.put("org.quartz.dataSource.myDS.URL",JdbcQuartzDerbyUtilities.DATABASE_CONNECTION_PREFIX);
         properties.put("org.quartz.dataSource.myDS.user","quartz");
@@ -100,7 +102,7 @@ public class PoolingConnectionProviderTest extends QuartzDatabaseTestSupport {
         properties.put("org.quartz.dataSource.myDS.acquireIncrement","5");
         properties.put("org.quartz.dataSource.myDS.acquireRetryAttempts","3");
         properties.put("org.quartz.dataSource.myDS.acquireRetryDelay","3000");
-        properties.put("org.quartz.dataSource.myDS.discardIdleConnectionsSeconds","60");
+        properties.put("org.quartz.dataSource.myDS.maxIdleTime","60");
 
         return properties;
     }

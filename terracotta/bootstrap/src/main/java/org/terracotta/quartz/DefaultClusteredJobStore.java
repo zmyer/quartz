@@ -823,11 +823,34 @@ class DefaultClusteredJobStore implements ClusteredJobStore {
     return Trigger.TriggerState.NORMAL;
   }
 
+  @Override
+  public void resetTriggerFromErrorState(final TriggerKey triggerKey) throws JobPersistenceException {
+
+    TriggerWrapper tw = triggerFacade.get(triggerKey);
+    // was the trigger deleted since being acquired?
+    if (tw == null) {
+      return;
+    }
+    // was the trigger completed, paused, blocked, etc. since being acquired?
+    if (tw.getState() != TriggerState.ERROR) {
+      return;
+    }
+
+    if(triggerFacade.pausedGroupsContain(triggerKey.getGroup())) {
+      tw.setState(TriggerState.PAUSED, terracottaClientId, triggerFacade);
+    }
+    else {
+      tw.setState(TriggerState.WAITING, terracottaClientId, triggerFacade);
+      timeTriggers.add(tw);
+    }
+  }
+
+
   /**
    * <p>
    * Store the given <code>{@link org.quartz.Calendar}</code>.
    * </p>
-   * 
+   *
    * @param calendar The <code>Calendar</code> to be stored.
    * @param replaceExisting If <code>true</code>, any <code>Calendar</code> existing in the <code>JobStore</code> with
    *        the same name & group should be over-written.
@@ -837,7 +860,7 @@ class DefaultClusteredJobStore implements ClusteredJobStore {
    * @throws ObjectAlreadyExistsException if a <code>Calendar</code> with the same name already exists, and
    *         replaceExisting is set to false.
    */
-  @Override
+@Override
   public void storeCalendar(String name, Calendar calendar, boolean replaceExisting, boolean updateTriggers)
       throws ObjectAlreadyExistsException, JobPersistenceException {
 
@@ -2004,6 +2027,11 @@ class DefaultClusteredJobStore implements ClusteredJobStore {
   public boolean isClustered() {
     // We throw an assertion here since this method should never be called directly on this instance.
     throw new AssertionError();
+  }
+
+  @Override
+  public long getAcquireRetryDelay(int failureCount) {
+    return retryInterval;
   }
 
   void injectTriggerWrapper(final TriggerWrapper triggerWrapper) {

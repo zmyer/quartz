@@ -1,6 +1,6 @@
 
 /* 
- * Copyright 2001-2009 Terracotta, Inc. 
+ * All content copyright Terracotta, Inc., unless otherwise indicated. All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not 
  * use this file except in compliance with the License. You may obtain a copy 
@@ -563,7 +563,7 @@ public class QuartzScheduler implements RemotableQuartzScheduler {
                 catch(InterruptedException ignore) {}
                 try { start(); }
                 catch(SchedulerException se) {
-                    getLog().error("Unable to start secheduler after startup delay.", se);
+                    getLog().error("Unable to start scheduler after startup delay.", se);
                 }
             }
         });
@@ -1554,6 +1554,13 @@ J     *
         validateState();
 
         return resources.getJobStore().getTriggerState(triggerKey);
+    }
+
+
+    public void resetTriggerFromErrorState(TriggerKey triggerKey) throws SchedulerException  {
+        validateState();
+
+        resources.getJobStore().resetTriggerFromErrorState(triggerKey);
     }
 
     /**

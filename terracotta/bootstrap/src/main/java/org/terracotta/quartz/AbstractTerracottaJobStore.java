@@ -230,6 +230,15 @@ public abstract class AbstractTerracottaJobStore implements JobStore {
   }
 
   @Override
+  public void resetTriggerFromErrorState(final TriggerKey triggerKey) throws JobPersistenceException {
+    try {
+      realJobStore.resetTriggerFromErrorState(triggerKey);
+    } catch (RejoinException e) {
+      throw new JobPersistenceException("Trigger state reset failed due to client rejoin", e);
+    }
+  }
+
+  @Override
   public void initialize(ClassLoadHelper loadHelper, SchedulerSignaler signaler) throws SchedulerConfigException {
     init();
     realJobStore.setInstanceId(schedInstId);
@@ -595,6 +604,15 @@ public abstract class AbstractTerracottaJobStore implements JobStore {
       realJobStore.storeJobsAndTriggers(arg0, arg1);
     } catch (RejoinException e) {
       throw new JobPersistenceException("Store jobs and triggers failed due to client rejoin", e);
+    }
+  }
+
+  @Override
+  public long getAcquireRetryDelay(int failureCount) {
+    try {
+      return realJobStore.getAcquireRetryDelay(failureCount);
+    } catch (Exception e) {
+      return 20;
     }
   }
 

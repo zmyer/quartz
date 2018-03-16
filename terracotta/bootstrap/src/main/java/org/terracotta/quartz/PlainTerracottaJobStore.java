@@ -130,6 +130,11 @@ public class PlainTerracottaJobStore<T extends ClusteredJobStore> implements Ter
   }
 
   @Override
+  public void resetTriggerFromErrorState(final TriggerKey triggerKey) throws JobPersistenceException {
+    clusteredJobStore.resetTriggerFromErrorState(triggerKey);
+  }
+
+  @Override
   public synchronized void initialize(ClassLoadHelper loadHelper, SchedulerSignaler signaler)
       throws SchedulerConfigException {
     if (clusteredJobStore != null) { throw new IllegalStateException("already initialized"); }
@@ -376,6 +381,11 @@ public class PlainTerracottaJobStore<T extends ClusteredJobStore> implements Ter
   @Override
   public void setTcRetryInterval(long retryInterval) {
     this.tcRetryInterval = retryInterval;
+  }
+
+  @Override
+  public long getAcquireRetryDelay(int failureCount) {
+    return tcRetryInterval;
   }
 
   @Override
